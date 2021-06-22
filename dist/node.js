@@ -21,7 +21,7 @@ if (typeof process !== 'undefined') {
 }
 
 
-const UINT_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const UINT_ZERO$1 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 function toStr (value, pad) {
   if (value === undefined) {
@@ -92,7 +92,7 @@ class Inventory {
   }
 
   storageLoad (target, key) {
-    const v = this._getValue(key) || UINT_ZERO;
+    const v = this._getValue(key) || UINT_ZERO$1;
 
     if (!this.reads[key] || !this.writes[key]) {
       this.reads[key] = v;
@@ -1401,7 +1401,7 @@ class Keccak256 {
   }
 }
 
-const keccak = new Keccak256();
+const keccak$1 = new Keccak256();
 
 function stripZeros (v) {
   if (v.length === 0) {
@@ -1436,13 +1436,13 @@ async function signRlpTransaction (txObj, privKeyBuf, chainId) {
   const tmp = [chainId, nonce, gasPrice, gasLimit, to, value, data, accessList];
 
   const unsigned = [1].concat(encode(tmp));
-  const unsignedHash = keccak.reset().update(unsigned).digestArray();
+  const unsignedHash = keccak$1.reset().update(unsigned).digestArray();
   const { v, r, s } = await ecsign(unsignedHash, privKeyBuf);
   const signed = [1].concat(encode(
     [chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, v, stripZeros(r), stripZeros(s)]
   ));
   const rawTxHex = bufToHex(signed, 0, signed.length);
-  const txHash = `0x${keccak.reset().update(signed).digest()}`;
+  const txHash = `0x${keccak$1.reset().update(signed).digest()}`;
 
   return { txHash, rawTxHex };
 }
@@ -1450,7 +1450,7 @@ async function signRlpTransaction (txObj, privKeyBuf, chainId) {
 function recoverAddress (msg, v, r, s, chainId) {
   const from =
     '0x' +
-    keccak.reset().update(
+    keccak$1.reset().update(
       ecrecover(
         bufferify(msg),
         Number(v) | 0,
@@ -1464,11 +1464,11 @@ function recoverAddress (msg, v, r, s, chainId) {
 }
 
 function keccak256 (array) {
-  return keccak.reset().update(array).digestArray();
+  return keccak$1.reset().update(array).digestArray();
 }
 
 function keccak256HexPrefix (array) {
-  return `0x${keccak.reset().update(array).digest()}`;
+  return `0x${keccak$1.reset().update(array).digest()}`;
 }
 
 function publicToAddress (_pubKey) {
@@ -1523,10 +1523,10 @@ function maybeDecodeError (hexStr) {
   return '';
 }
 
-const BIG_ZERO = BigInt(0);
-const BIG_ONE = BigInt(1);
-const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
-const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+const BIG_ZERO$7 = BigInt(0);
+const BIG_ONE$5 = BigInt(1);
+const ZERO_HASH$3 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const ADDRESS_ZERO$1 = '0x0000000000000000000000000000000000000000';
 
 function slicePadEnd (buf, start, end) {
   const ret = buf.slice(start, end);
@@ -1541,7 +1541,7 @@ function slicePadEnd (buf, start, end) {
 
 // TODO
 // This needs to be rebased
-class Block {
+class Block$1 {
   decodeTransactionLength (buf, offset, bridge) {
     return 1;
   }
@@ -1551,7 +1551,7 @@ class Block {
   }
 
   decodeTx (rawStringOrArray, bridge) {
-    return { from: ADDRESS_ZERO, to: ADDRESS_ZERO, hash: ZERO_HASH, nonce: BIG_ZERO };
+    return { from: ADDRESS_ZERO$1, to: ADDRESS_ZERO$1, hash: ZERO_HASH$3, nonce: BIG_ZERO$7 };
   }
 
   async executeTx (tx, bridge, dry) {
@@ -1656,9 +1656,9 @@ class Block {
     // previous block - if applicable
     this.prevBlock = prevBlock;
     // the blockHash - non-zero if this block was submitted to the Bridge.
-    this.hash = ZERO_HASH;
+    this.hash = ZERO_HASH$3;
     // the blockNumber
-    this.number = prevBlock ? prevBlock.number + BIG_ONE : BIG_ONE;
+    this.number = prevBlock ? prevBlock.number + BIG_ONE$5 : BIG_ONE$5;
     // the timestamp (from the L1 block)
     this.timestamp = prevBlock ? prevBlock.timestamp : 0;
     // address > nonce mapping
@@ -1700,7 +1700,7 @@ class Block {
       from: obj.owner,
       to: obj.token,
       data: obj.value,
-      nonce: BIG_ZERO,
+      nonce: BIG_ZERO$7,
       status: '0x1',
       errno: 0,
       logs: [],
@@ -1715,10 +1715,10 @@ class Block {
   async addCustomMessage (data, bridge) {
     const tx = {
       hash: this.hash,
-      from: ADDRESS_ZERO,
-      to: ADDRESS_ZERO,
+      from: ADDRESS_ZERO$1,
+      to: ADDRESS_ZERO$1,
       data: data,
-      nonce: BIG_ZERO,
+      nonce: BIG_ZERO$7,
       status: '0x1',
       errno: 0,
       logs: [],
@@ -1832,7 +1832,7 @@ class Block {
       tx.errno = errno;
       tx.returnData = returnValue;
 
-      this.nonces[tx.from] = tx.nonce + BIG_ONE;
+      this.nonces[tx.from] = tx.nonce + BIG_ONE$5;
       //if (errno === 0 || fromBeacon) {
       //  this.transactionHashes.push(tx.hash);
       //}
@@ -1961,17 +1961,17 @@ class Block {
 
 const ZERO_LOGS_BLOOM = `0x${''.padStart(512, '0')}`;
 const ZERO_NONCE = '0x0000000000000000';
-const ZERO_HASH$1 = `0x${''.padStart(64, '0')}`;
+const ZERO_HASH$2 = `0x${''.padStart(64, '0')}`;
 const MAX_HASH = `0x${''.padStart(64, 'f')}`;
-const BIG_ZERO$1 = BigInt(0);
+const BIG_ZERO$6 = BigInt(0);
 
 const BLOCK_ZERO = {
   hash: MAX_HASH,
   parentHash: MAX_HASH,
-  sha3Uncles: ZERO_HASH$1,
-  stateRoot: ZERO_HASH$1,
-  transactionsRoot: ZERO_HASH$1,
-  receiptsRoot: ZERO_HASH$1,
+  sha3Uncles: ZERO_HASH$2,
+  stateRoot: ZERO_HASH$2,
+  transactionsRoot: ZERO_HASH$2,
+  receiptsRoot: ZERO_HASH$2,
   number: '0x0',
   timestamp: '0x0',
   nonce: ZERO_NONCE,
@@ -1990,7 +1990,7 @@ function toQuantity (val) {
 
 function formatTransaction (tx, txIndex, block) {
   const transactionIndex = `0x${txIndex.toString(16)}`;
-  const blockHash = block.hash || ZERO_HASH$1;
+  const blockHash = block.hash || ZERO_HASH$2;
   const blockNumber = `0x${block.number.toString(16)}`;
 
   // Typed data transaction
@@ -2050,12 +2050,12 @@ function blockRequest (block, withTxData) {
   }
 
   return {
-    hash: block.hash || ZERO_HASH$1,
-    parentHash: block.prevBlock ? block.prevBlock.hash : ZERO_HASH$1,
-    sha3Uncles: ZERO_HASH$1,
-    stateRoot: ZERO_HASH$1,
-    transactionsRoot: ZERO_HASH$1,
-    receiptsRoot: ZERO_HASH$1,
+    hash: block.hash || ZERO_HASH$2,
+    parentHash: block.prevBlock ? block.prevBlock.hash : ZERO_HASH$2,
+    sha3Uncles: ZERO_HASH$2,
+    stateRoot: ZERO_HASH$2,
+    transactionsRoot: ZERO_HASH$2,
+    receiptsRoot: ZERO_HASH$2,
     number: `0x${block.number.toString(16)}`,
     timestamp: `0x${block.timestamp.toString(16)}`,
     // TODO: implement block nonce
@@ -2174,7 +2174,7 @@ class Methods {
     const num = BigInt(maybeNumber);
 
     // special case
-    if (num === BIG_ZERO$1) {
+    if (num === BIG_ZERO$6) {
       return BLOCK_ZERO;
     }
 
@@ -2217,7 +2217,7 @@ class Methods {
     }
 
     const transactionIndex = `0x${txIndex.toString(16)}`;
-    const blockHash = block.hash || ZERO_HASH$1;
+    const blockHash = block.hash || ZERO_HASH$2;
     const blockNumber = `0x${block.number.toString(16)}`;
     const logs = [];
 
@@ -2285,7 +2285,7 @@ class Methods {
   }
 
   static async 'eth_call' (obj, bridge) {
-    const block = obj.params[1];
+    obj.params[1];
     // from, to, data, gas, gasPrice, value
     const tx = obj.params[0];
     return bridge.runCall(tx);
@@ -2323,14 +2323,14 @@ class Methods {
     const start = BigInt(eventFilter.fromBlock || bridge.pendingBlock.number);
     const reverse = stop < start;
 
-    for (let i = BIG_ZERO$1, len = reverse ? start - stop : stop - start; i <= len; i++) {
+    for (let i = BIG_ZERO$6, len = reverse ? start - stop : stop - start; i <= len; i++) {
       const block = await bridge.getBlockByNumber(reverse ? start - i : start + i, true);
 
       if (!block) {
         break;
       }
 
-      const blockHash = block.hash || ZERO_HASH$1;
+      const blockHash = block.hash || ZERO_HASH$2;
       const blockNumber = `0x${block.number.toString(16)}`;
       const txsLength = block.transactions.length;
 
@@ -2510,10 +2510,10 @@ const FUNC_SIG_FINALIZED_HEIGHT = '0xb2223bd6';
 const STATE_ROOT_STORAGE_KEY = '0xd27f023774f5a743d69cfc4b80b1efe4be7912753677c20f45ee5464160b7d24';
 const CHALLENGE_OFFSET_KEY = '0xd733644cc0b916a23c558a3a2815e430d2373e6f5bf71acb729373a0dd995878';
 
-const UINT_ZERO$1 = '0x'.padEnd(66, '0');
+const UINT_ZERO = '0x'.padEnd(66, '0');
 const UINT_MAX = '0x'.padEnd(66, 'f');
-const BIG_ZERO$2 = BigInt(0);
-const BIG_ONE$1 = BigInt(1);
+const BIG_ZERO$5 = BigInt(0);
+const BIG_ONE$4 = BigInt(1);
 const MAX_SHIFT = BigInt(255);
 
 class RootBridge {
@@ -2572,7 +2572,7 @@ class RootBridge {
         for (let i = 64, len = data.length; i < len;) {
           const solutionHash = '0x' + data.substring(i, i += 64).padEnd(64, '0');
 
-          if (solutionHash === UINT_ZERO$1 || solutionHash === UINT_MAX) {
+          if (solutionHash === UINT_ZERO || solutionHash === UINT_MAX) {
             continue;
           }
           await delegate.onSolution(blockNum, solutionHash, evt);
@@ -2664,7 +2664,7 @@ class RootBridge {
     const res = await this.abiCall(`${FUNC_SIG_BLOCK_META}${blockNumber.toString(16).replace('0x', '').padStart(64, '0')}`);
 
     // if the lsb is 1, then the solution was disputed
-    return !!(BigInt(res) & BIG_ONE$1);
+    return !!(BigInt(res) & BIG_ONE$4);
   }
 
   async createdAtBlock () {
@@ -2744,16 +2744,16 @@ class RootBridge {
     }
 
     let blockN = blockNumbers[0];
-    let mask = BIG_ZERO$2;
+    let mask = BIG_ZERO$5;
 
     for (const blockNumber of blockNumbers) {
       const i = blockNumber - blockN;
 
-      if (i > MAX_SHIFT || i < BIG_ZERO$2) {
+      if (i > MAX_SHIFT || i < BIG_ZERO$5) {
         throw new Error(`distance too large: ${blockN} / ${blockNumber}`);
       }
 
-      mask |= BIG_ONE$1 << i;
+      mask |= BIG_ONE$4 << i;
     }
 
     return {
@@ -2885,17 +2885,17 @@ class RootBridge {
   }
 }
 
-const BIG_ZERO$3 = BigInt(0);
-const BIG_ONE$2 = BigInt(1);
-const ZERO_HASH$2 = '0000000000000000000000000000000000000000000000000000000000000000';
+const BIG_ZERO$4 = BigInt(0);
+const BIG_ONE$3 = BigInt(1);
+const ZERO_HASH$1 = '0000000000000000000000000000000000000000000000000000000000000000';
 
 const IS_NATIVE_ENV = typeof process !== 'undefined';
 
 /// @dev Glue for everything.
-class Bridge {
+class Bridge$1 {
   constructor (options, BlockClass) {
     this.bytecodeCache = Object.create(null);
-    this.pendingBlock = new (BlockClass || Block)(null);
+    this.pendingBlock = new (BlockClass || Block$1)(null);
 
     this.disableValidation = options.operatingMode === 'producer';
     this.disableBlockProduction = options.operatingMode === 'validator';
@@ -3030,7 +3030,7 @@ class Bridge {
 
     // finalize or submit solution, if possible
     if (!this.disableValidation) {
-      const next = (await this.rootBridge.finalizedHeight()) + BIG_ONE$2;
+      const next = (await this.rootBridge.finalizedHeight()) + BIG_ONE$3;
       const wrongSolutions = [];
       const pendingSolutions = [];
       const pendingFinalizations = [];
@@ -3175,7 +3175,7 @@ class Bridge {
 
   /// @dev Checks if `blockNumber` is the next Block that needs finalization.
   async isCurrentBlock (blockNumber) {
-    const finalizedHeight = (await this.rootBridge.finalizedHeight()) + BIG_ONE$2;
+    const finalizedHeight = (await this.rootBridge.finalizedHeight()) + BIG_ONE$3;
 
     return finalizedHeight === blockNumber;
   }
@@ -3279,7 +3279,7 @@ class Bridge {
   async getNonce (addr) {
     const nonce = this.pendingBlock.nonces[addr.toLowerCase()];
 
-    return nonce || BIG_ZERO$3;
+    return nonce || BIG_ZERO$4;
   }
 
   getTransaction (txHash) {
@@ -3360,19 +3360,19 @@ class Bridge {
     }
 
     const firstBlock = blockNumbers[0];
-    let lastNumber = firstBlock - BIG_ONE$2;
+    let lastNumber = firstBlock - BIG_ONE$3;
     let data = '';
 
     for (const blockNumber of blockNumbers) {
       let diff = blockNumber - lastNumber;
 
-      if (diff < BIG_ONE$2) {
+      if (diff < BIG_ONE$3) {
         throw new Error(`incorrect sequence of blockNumbers`);
       }
 
-      while (diff-- > BIG_ONE$2) {
+      while (diff-- > BIG_ONE$3) {
         // fill `holes`
-        data += ZERO_HASH$2;
+        data += ZERO_HASH$1;
       }
 
       const block = await this.getBlockByNumber(blockNumber);
@@ -3859,15 +3859,15 @@ function VmError (error) {
   this.error = error;
   this.errorType = 'VmError';
 }
-const ADDRESS_ZERO$1 = ''.padStart(40, '0');
+const ADDRESS_ZERO = ''.padStart(40, '0');
 const MAX_INTEGER = BigInt.asUintN(256, '-1');
 const SIGN_MASK = BigInt(2) ** BigInt(255);
-const BIG_ZERO$4 = BigInt(0);
-const BIG_ONE$3 = BigInt(1);
+const BIG_ZERO$3 = BigInt(0);
+const BIG_ONE$2 = BigInt(1);
 const BIG_TWO = BigInt(2);
 const MEM_LIMIT = BigInt(2 << 20);
 // https://eips.ethereum.org/EIPS/eip-1352
-const MAX_PRECOMPILE = BigInt(0xffff);
+const MAX_PRECOMPILE$1 = BigInt(0xffff);
 
 function toUint (v) {
   return BigInt.asUintN(256, v);
@@ -3935,9 +3935,9 @@ class EVMRuntime {
       code: obj.code,
       callData: obj.data,
       // caller & origin are the same in our case
-      caller: obj.caller || obj.origin || ADDRESS_ZERO$1,
-      origin: obj.origin || ADDRESS_ZERO$1,
-      address: obj.address || ADDRESS_ZERO$1,
+      caller: obj.caller || obj.origin || ADDRESS_ZERO,
+      origin: obj.origin || ADDRESS_ZERO,
+      address: obj.address || ADDRESS_ZERO,
       memory: [],
       stack: [],
       memoryWordCount: 0,
@@ -4039,7 +4039,7 @@ class EVMRuntime {
     const b = runState.stack.pop();
     let r;
 
-    if (b === BIG_ZERO$4) {
+    if (b === BIG_ZERO$3) {
       r = b;
     } else {
       r = a / b;
@@ -4052,7 +4052,7 @@ class EVMRuntime {
     let b = toInt(runState.stack.pop());
     let r;
 
-    if (b === BIG_ZERO$4) {
+    if (b === BIG_ZERO$3) {
       r = b;
     } else {
       r = toUint(a / b);
@@ -4065,7 +4065,7 @@ class EVMRuntime {
     const b = runState.stack.pop();
     let r;
 
-    if (b === BIG_ZERO$4) {
+    if (b === BIG_ZERO$3) {
       r = b;
     } else {
       r = a % b;
@@ -4078,7 +4078,7 @@ class EVMRuntime {
     let b = runState.stack.pop();
     let r;
 
-    if (b === BIG_ZERO$4) {
+    if (b === BIG_ZERO$3) {
       r = b;
     } else {
       r = toUint(toInt(a) % toInt(b));
@@ -4092,7 +4092,7 @@ class EVMRuntime {
     const c = runState.stack.pop();
     let r;
 
-    if (c === BIG_ZERO$4) {
+    if (c === BIG_ZERO$3) {
       r = c;
     } else {
       r = (a + b) % c;
@@ -4106,7 +4106,7 @@ class EVMRuntime {
     const c = runState.stack.pop();
     let r;
 
-    if (c === BIG_ZERO$4) {
+    if (c === BIG_ZERO$3) {
       r = c;
     } else {
       r = (a * b) % c;
@@ -4118,28 +4118,28 @@ class EVMRuntime {
     const base = runState.stack.pop();
     const exponent = runState.stack.pop();
 
-    if (exponent === BIG_ZERO$4) {
-      runState.stack.push(BIG_ONE$3);
+    if (exponent === BIG_ZERO$3) {
+      runState.stack.push(BIG_ONE$2);
       return;
     }
 
-    if (base === BIG_ZERO$4) {
-      runState.stack.push(BIG_ZERO$4);
+    if (base === BIG_ZERO$3) {
+      runState.stack.push(BIG_ZERO$3);
       return;
     }
 
-    let r = BIG_ONE$3;
+    let r = BIG_ONE$2;
     let b = base;
     let e = exponent;
 
     while (true) {
-      if (e % BIG_TWO === BIG_ONE$3) {
+      if (e % BIG_TWO === BIG_ONE$2) {
         r = toUint(r * b);
       }
 
       e /= BIG_TWO;
 
-      if (e === BIG_ZERO$4) {
+      if (e === BIG_ZERO$3) {
         break;
       }
 
@@ -4155,8 +4155,8 @@ class EVMRuntime {
 
     if (k < BigInt(31)) {
       const signBit = (k * BigInt(8)) + BigInt(7);
-      const mask = (BIG_ONE$3 << signBit);
-      const fmask = mask - BIG_ONE$3;
+      const mask = (BIG_ONE$2 << signBit);
+      const fmask = mask - BIG_ONE$2;
 
       if (val & mask) {
         val = toUint(val | ~fmask);
@@ -4172,41 +4172,41 @@ class EVMRuntime {
     const a = runState.stack.pop();
     const b = runState.stack.pop();
 
-    runState.stack.push(a < b ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a < b ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async GT (runState) {
     const a = runState.stack.pop();
     const b = runState.stack.pop();
 
-    runState.stack.push(a > b ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a > b ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async SLT (runState) {
     const a = toInt(runState.stack.pop());
     const b = toInt(runState.stack.pop());
 
-    runState.stack.push(a < b ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a < b ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async SGT (runState) {
     const a = toInt(runState.stack.pop());
     const b = toInt(runState.stack.pop());
 
-    runState.stack.push(a > b ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a > b ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async EQ (runState) {
     const a = runState.stack.pop();
     const b = runState.stack.pop();
 
-    runState.stack.push(a === b ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a === b ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async ISZERO (runState) {
     const a = runState.stack.pop();
 
-    runState.stack.push(a === BIG_ZERO$4 ? BIG_ONE$3 : BIG_ZERO$4);
+    runState.stack.push(a === BIG_ZERO$3 ? BIG_ONE$2 : BIG_ZERO$3);
   }
 
   async AND (runState) {
@@ -4241,7 +4241,7 @@ class EVMRuntime {
     const word = runState.stack.pop();
 
     if (pos > BigInt(31)) {
-      runState.stack.push(BIG_ZERO$4);
+      runState.stack.push(BIG_ZERO$3);
       return;
     }
 
@@ -4253,7 +4253,7 @@ class EVMRuntime {
     const b = runState.stack.pop();
 
     if (a >= BigInt(256)) {
-      runState.stack.push(BIG_ZERO$4);
+      runState.stack.push(BIG_ZERO$3);
       return;
     }
 
@@ -4265,7 +4265,7 @@ class EVMRuntime {
     const b = runState.stack.pop();
 
     if (a >= BigInt(256)) {
-      runState.stack.push(BIG_ZERO$4);
+      runState.stack.push(BIG_ZERO$3);
       return;
     }
 
@@ -4282,7 +4282,7 @@ class EVMRuntime {
       if (isSigned) {
         r = MAX_INTEGER;
       } else {
-        r = BIG_ZERO$4;
+        r = BIG_ZERO$3;
       }
       runState.stack.push(r);
       return;
@@ -4309,7 +4309,7 @@ class EVMRuntime {
       throw new Error('MEM_LIMIT');
     }
 
-    if (length !== BIG_ZERO$4) {
+    if (length !== BIG_ZERO$3) {
       data = this.memLoad(runState, offset, length);
     }
 
@@ -4333,18 +4333,18 @@ class EVMRuntime {
   }
 
   async CALLVALUE (runState) {
-    runState.stack.push(BIG_ZERO$4);
+    runState.stack.push(BIG_ZERO$3);
   }
 
   async CALLDATALOAD (runState) {
     const pos = Number(runState.stack.pop());
 
     if (pos >= runState.callData.length) {
-      runState.stack.push(BIG_ZERO$4);
+      runState.stack.push(BIG_ZERO$3);
       return;
     }
 
-    let ret = BIG_ZERO$4;
+    let ret = BIG_ZERO$3;
     for (let i = 0; i < 32; i++) {
       if (pos + i < runState.callData.length) {
         const v = runState.callData[pos + i] | 0;
@@ -4458,7 +4458,7 @@ class EVMRuntime {
     let word = runState.stack.pop();
 
     word = arrayify(word.toString(16).padStart(64, '0'));
-    this.memStore(runState, offset, word, BIG_ZERO$4, BigInt(32));
+    this.memStore(runState, offset, word, BIG_ZERO$3, BigInt(32));
   }
 
   async MSTORE8 (runState) {
@@ -4467,7 +4467,7 @@ class EVMRuntime {
 
     // NOTE: we're using a 'trick' here to get the least significant byte
     byte = [Number(byte & BigInt(0xff))];
-    this.memStore(runState, offset, byte, BIG_ZERO$4, BIG_ONE$3);
+    this.memStore(runState, offset, byte, BIG_ZERO$3, BIG_ONE$2);
   }
 
   async SLOAD (runState) {
@@ -4498,7 +4498,7 @@ class EVMRuntime {
     const dest = runState.stack.pop();
     const cond = runState.stack.pop();
 
-    if (cond !== BIG_ZERO$4) {
+    if (cond !== BIG_ZERO$3) {
       if (dest >= BigInt(runState.code.length)) {
         throw new VmError(ERROR.INVALID_JUMP);
       }
@@ -4599,7 +4599,7 @@ class EVMRuntime {
   async STATICCALL (runState) {
     const target = runState.stack[runState.stack.length - 2] || BigInt(0xff);
 
-    if (target >= BIG_ZERO$4 && target <= MAX_PRECOMPILE) {
+    if (target >= BIG_ZERO$3 && target <= MAX_PRECOMPILE$1) {
       // gasLimit
       runState.stack.pop();
       const toAddress = runState.stack.pop();
@@ -4617,7 +4617,7 @@ class EVMRuntime {
             data: toHexPrefix(data),
           }
         );
-        this.memStore(runState, outOffset, arrayify(returnValue), BIG_ZERO$4, outLength);
+        this.memStore(runState, outOffset, arrayify(returnValue), BIG_ZERO$3, outLength);
         runState.returnValue = returnValue;
         success = 1n;
       } catch (e) {
@@ -4632,7 +4632,7 @@ class EVMRuntime {
 
     runState.returnValue = [];
     runState.stack = runState.stack.slice(0, runState.stack.length - 6);
-    runState.stack.push(BIG_ZERO$4);
+    runState.stack.push(BIG_ZERO$3);
 
     throw new VmError(ERROR.INSTRUCTION_NOT_SUPPORTED);
   }
@@ -4666,7 +4666,7 @@ class EVMRuntime {
   }
 
   memStore (runState, offset, val, valOffset, length) {
-    if (length === BIG_ZERO$4) {
+    if (length === BIG_ZERO$3) {
       return;
     }
 
@@ -4712,7 +4712,7 @@ class EVMRuntime {
   }
 
   memLoad (runState, offset, length) {
-    if (length === BIG_ZERO$4) {
+    if (length === BIG_ZERO$3) {
       return [];
     }
 
@@ -4739,9 +4739,9 @@ class EVMRuntime {
   }
 }
 
-const BIG_ZERO$5 = BigInt(0);
-const BIG_ONE$4 = BigInt(1);
-const MAX_PRECOMPILE$1 = BigInt(0xffff);
+const BIG_ZERO$2 = BigInt(0);
+const BIG_ONE$1 = BigInt(1);
+const MAX_PRECOMPILE = BigInt(0xffff);
 // https://eips.ethereum.org/EIPS/eip-1352
 
 function toAddress (val) {
@@ -4862,14 +4862,14 @@ class V1Runtime extends EVMRuntime {
       inventory.writes = customEnvironment.writes;
 
       runState.logs = runState.logs.concat(state.logs);
-      runState.stack.push(BIG_ONE$4);
+      runState.stack.push(BIG_ONE$1);
     } else {
-      runState.stack.push(BIG_ZERO$5);
+      runState.stack.push(BIG_ZERO$2);
     }
 
     if (state.errno === 0 || state.errno === 7) {
       runState.returnValue = state.returnValue;
-      this.memStore(runState, retOffset, runState.returnValue, BIG_ZERO$5, retSize);
+      this.memStore(runState, retOffset, runState.returnValue, BIG_ZERO$2, retSize);
     } else {
       throw new Error(`V1Runtime execution error ${state.errno}`);
     }
@@ -4879,7 +4879,7 @@ class V1Runtime extends EVMRuntime {
     // gasLimit
     runState.stack.pop();
     const starget = runState.stack.pop();
-    const value = runState.stack.pop();
+    runState.stack.pop();
     const inOffset = runState.stack.pop();
     const inSize = runState.stack.pop();
     const retOffset = runState.stack.pop();
@@ -4893,7 +4893,7 @@ class V1Runtime extends EVMRuntime {
     // skip for precompiles
     // this should basically work in all calls*, but LEVM is special
     const _target = runState.stack[runState.stack.length - 2];
-    if (_target >= BIG_ZERO$5 && _target <= MAX_PRECOMPILE$1) {
+    if (_target >= BIG_ZERO$2 && _target <= MAX_PRECOMPILE) {
       // route these calls through eth_call
       return super.STATICCALL(runState);
     }
@@ -4916,7 +4916,7 @@ class V1Runtime extends EVMRuntime {
      // gasLimit
      runState.stack.pop();
      const starget = runState.stack.pop();
-     const value = runState.stack.pop();
+     runState.stack.pop();
      const inOffset = runState.stack.pop();
      const inSize = runState.stack.pop();
      const retOffset = runState.stack.pop();
@@ -4969,13 +4969,13 @@ class V1Runtime extends EVMRuntime {
   }
 }
 
-const keccak$1 = new Keccak256();
-const BIG_ZERO$6 = BigInt(0);
-const BIG_ONE$5 = BigInt(1);
+const keccak = new Keccak256();
+const BIG_ZERO$1 = BigInt(0);
+const BIG_ONE = BigInt(1);
 const HASH_ONE = '01'.padStart(64, '0');
 
 function newEmptyLeaf () {
-  return { isBranch: false, hash: BIG_ZERO$6, key: BIG_ZERO$6, value: BIG_ZERO$6 };
+  return { isBranch: false, hash: BIG_ZERO$1, key: BIG_ZERO$1, value: BIG_ZERO$1 };
 }
 
 class BalancedBinaryTree {
@@ -5004,7 +5004,7 @@ class BalancedBinaryTree {
     if (isBranch) {
       return BigInt(
         '0x' +
-        keccak$1.reset()
+        keccak.reset()
         .update(left.toString(16).padStart(64, '0'))
         .update(right.toString(16).padStart(64, '0'))
         .digest()
@@ -5013,7 +5013,7 @@ class BalancedBinaryTree {
 
     return BigInt(
       '0x' +
-      keccak$1.reset()
+      keccak.reset()
       .update(left.toString(16).padStart(64, '0'))
       .update(right.toString(16).padStart(64, '0'))
       .update(HASH_ONE)
@@ -5026,20 +5026,20 @@ class BalancedBinaryTree {
       isBranch: false,
       left: null,
       right: null,
-      hash: BIG_ZERO$6,
-      key: BIG_ZERO$6,
-      value: BIG_ZERO$6,
+      hash: BIG_ZERO$1,
+      key: BIG_ZERO$1,
+      value: BIG_ZERO$1,
     };
     this.leaves = {};
   }
 
   updateNode (node) {
     if (node.isBranch) {
-      node.key = BIG_ZERO$6;
-      node.value = BIG_ZERO$6;
+      node.key = BIG_ZERO$1;
+      node.value = BIG_ZERO$1;
       node.hash = this.hash(
-        node.left ? node.left.hash : BIG_ZERO$6,
-        node.right ? node.right.hash : BIG_ZERO$6,
+        node.left ? node.left.hash : BIG_ZERO$1,
+        node.right ? node.right.hash : BIG_ZERO$1,
         true
       );
     }
@@ -5050,28 +5050,28 @@ class BalancedBinaryTree {
     // start with the root
     let node = this.root;
     let bits = BigInt(key);
-    let depth = BIG_ZERO$6;
+    let depth = BIG_ZERO$1;
 
     while (true) {
-      const goLeft = bits & BIG_ONE$5;
+      const goLeft = bits & BIG_ONE;
 
       if (node.isBranch) {
         node = goLeft ? node.left : node.right;
         path.push(node);
-        bits = bits >> BIG_ONE$5;
+        bits = bits >> BIG_ONE;
         depth++;
         continue;
       }
 
       // fast case
       // (update or free space)
-      if (node.value === BIG_ZERO$6 || node.key === key) {
+      if (node.value === BIG_ZERO$1 || node.key === key) {
         node.isBranch = false;
-        if (value === BIG_ZERO$6) {
+        if (value === BIG_ZERO$1) {
           // delete
-          node.value = BIG_ZERO$6;
-          node.key = BIG_ZERO$6;
-          node.hash = BIG_ZERO$6;
+          node.value = BIG_ZERO$1;
+          node.key = BIG_ZERO$1;
+          node.hash = BIG_ZERO$1;
           delete this.leaves[key];
         } else {
           node.value = value;
@@ -5089,13 +5089,13 @@ class BalancedBinaryTree {
       {
         // move it
         const oldLeaf = { isBranch: false, hash: node.hash, key: node.key, value: node.value };
-        if (node.value !== BIG_ZERO$6) {
+        if (node.value !== BIG_ZERO$1) {
           this.leaves[node.key] = oldLeaf;
         } else {
           throw new Error('unexpected');
         }
 
-        const _goLeft = (oldLeaf.key >> depth) & BIG_ONE$5;
+        const _goLeft = (oldLeaf.key >> depth) & BIG_ONE;
 
         if (_goLeft) {
           node.left = oldLeaf;
@@ -5107,13 +5107,13 @@ class BalancedBinaryTree {
 
         // node becomes a branch
         node.isBranch = true;
-        node.value = BIG_ZERO$6;
-        node.key = BIG_ZERO$6;
+        node.value = BIG_ZERO$1;
+        node.key = BIG_ZERO$1;
 
         // resume the journey
         node = goLeft ? node.left : node.right;
         path.push(node);
-        bits = bits >> BIG_ONE$5;
+        bits = bits >> BIG_ONE;
         depth++;
         continue;
       }
@@ -5145,12 +5145,12 @@ class BalancedBinaryTree {
     let bits = BigInt(key);
 
     while (true) {
-      const goLeft = bits & BIG_ONE$5;
+      const goLeft = bits & BIG_ONE;
 
       if (node.isBranch) {
         path.push(goLeft ? node.right.hash : node.left.hash);
         node = goLeft ? node.left : node.right;
-        bits = bits >> BIG_ONE$5;
+        bits = bits >> BIG_ONE;
         continue;
       }
 
@@ -5169,11 +5169,11 @@ class BalancedBinaryTree {
   // - delete
   calculateUpdate (key, newValue, proofs) {
     const len = proofs.length;
-    let ret = BIG_ZERO$6;
-    let _k = BIG_ZERO$6;
-    let _v = BIG_ZERO$6;
+    let ret = BIG_ZERO$1;
+    let _k = BIG_ZERO$1;
+    let _v = BIG_ZERO$1;
 
-    if (newValue !== BIG_ZERO$6) {
+    if (newValue !== BIG_ZERO$1) {
       // insert or update
       // hash leaf
       ret = this.hash(key, newValue, false);
@@ -5187,7 +5187,7 @@ class BalancedBinaryTree {
       _k = proofs[0];
       _v = proofs[1];
 
-      if (_v !== BIG_ZERO$6 && _k !== key) {
+      if (_v !== BIG_ZERO$1 && _k !== key) {
         // Update and create a new branch.
         // Compare against the key of the other leaf and loop until diverge.
         // Then create a new branch(es).
@@ -5247,21 +5247,21 @@ class BalancedBinaryTree {
 
   verifyUniform (key, proofs) {
     const len = proofs.length;
-    let _k = BIG_ZERO$6;
-    let _v = BIG_ZERO$6;
-    let ret = BIG_ZERO$6;
+    let _k = BIG_ZERO$1;
+    let _v = BIG_ZERO$1;
+    let ret = BIG_ZERO$1;
     let inTree = false;
 
     if (len) {
       if (len < 2) {
-        return { valid: false, inTree: false, value: BIG_ZERO$6 };
+        return { valid: false, inTree: false, value: BIG_ZERO$1 };
       }
 
       _k = proofs[0];
       _v = proofs[1];
 
       // leafhash
-      if (_v !== BIG_ZERO$6) {
+      if (_v !== BIG_ZERO$1) {
         ret = this.hash(_k, _v, false);
         inTree = key === _k;
       }
@@ -5286,7 +5286,7 @@ class BalancedBinaryTree {
     return {
       valid,
       inTree: valid ? inTree : false,
-      value: valid && inTree ? _v : BIG_ZERO$6
+      value: valid && inTree ? _v : BIG_ZERO$1
     };
   }
 }
@@ -5810,8 +5810,8 @@ class TransactionBuilder {
   }
 }
 
-const ZERO_HASH$3 = '0x0000000000000000000000000000000000000000000000000000000000000000';
-const BIG_ZERO$7 = BigInt(0);
+const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const BIG_ZERO = BigInt(0);
 // _InternalReflectStorage(uint256, uin256)
 const INTERNAL_EVENT_SET_STORAGE = '0x0000000000000000000000000000000000000000000000000000000000000001';
 // ..
@@ -5841,7 +5841,7 @@ const INTERNAL_TYPED_DATA = {
 
 const INTERNAL_TX_BUILDER = new TransactionBuilder(INTERNAL_TYPED_DATA, true);
 
-class Block$1 extends Block {
+class Block extends Block$1 {
   decodeTransactionLength (buf, offset, bridge) {
     return bridge.transactionBuilder.decodeLength(buf, offset);
   }
@@ -5857,7 +5857,7 @@ class Block$1 extends Block {
     const tx = bridge.transactionBuilder.decode(bytes);
 
     tx.to = bridge.rootBridge.protocolAddress;
-    tx.nonce = this.nonces[tx.from] || BIG_ZERO$7;
+    tx.nonce = this.nonces[tx.from] || BIG_ZERO;
 
     return tx;
   }
@@ -5961,7 +5961,7 @@ class Block$1 extends Block {
     const caller = address;
     const code = arrayify(await bridge.getCode(bridge.implementationAddress));
     const runtime = new V1Runtime();
-    const isPending = this.hash === ZERO_HASH$3;
+    const isPending = this.hash === ZERO_HASH;
 
     if (isPending) {
       // use Date.now if this is a pending block
@@ -6130,7 +6130,7 @@ class Block$1 extends Block {
         // storage reads
         for (const k in tx.witness.reads) {
           const proof = bbt.proofUniform(BigInt(k));
-          const val = tx.witness.reads[k];
+          tx.witness.reads[k];
 
           // < key 32 bytes > < # of proof elements 32 bytes >
           readWitness += k.replace('0x', '') + proof.length.toString(16).padStart(64, '0');
@@ -6177,9 +6177,9 @@ class Block$1 extends Block {
 }
 
 /// @dev Glue for everything.
-class Bridge$1 extends Bridge {
+class Bridge extends Bridge$1 {
   constructor (options) {
-    super(options, Block$1);
+    super(options, Block);
 
     this.transactionBuilder = new TransactionBuilder(options.typedData);
   }
@@ -6249,4 +6249,4 @@ async function startServer (bridge, { host, rpcPort }) {
   log(`listening on ${host}:${rpcPort}`);
 }
 
-export { Block$1 as Block, Bridge$1 as Bridge, Inventory, TransactionBuilder, V1Runtime, startServer };
+export { Block, Bridge, Inventory, TransactionBuilder, V1Runtime, startServer };
