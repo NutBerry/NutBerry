@@ -1,6 +1,6 @@
 if (typeof process !== 'undefined') {
   globalThis['process$1'] = process;
-  import('crypto').then(function(esm){globalThis['crypto$1']=esm});
+  import('crypto').then(function(esm){globalThis['require$$0']=esm});
   globalThis['fs'] = undefined;
   globalThis['path$1'] = undefined;
 } else {

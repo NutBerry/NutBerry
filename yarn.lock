@@ -1001,10 +1001,10 @@ nanoid@3.1.23:
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.1.23.tgz#f744086ce7c2bc47ee0a8472574d5c78e4183a81"
   integrity sha512-FiB0kzdP0FFVGDKlRLEQ1BgDzU87dy5NnzjeW9YZNt+/c3+q82EQDUwniSAUxp/F0gFNI1ZhKU1FqYsMuqZVnw==
 
-noble-secp256k1@=1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/noble-secp256k1/-/noble-secp256k1-1.0.3.tgz#2ed3d082e86f5882ad21450c50797ca01145da35"
-  integrity sha512-QiHte73KaclsmReZzHFMmagvNzisKqbOC0SAc3+f+MfFYjLWw1W/Om7GeKL3rZArZ4mLa4Xy6vPX49j8gCHZuw==
+noble-secp256k1@=1.2.6:
+  version "1.2.6"
+  resolved "https://registry.yarnpkg.com/noble-secp256k1/-/noble-secp256k1-1.2.6.tgz#90c202a03d242ada6688522a1a261296c93942d7"
+  integrity sha512-YXh2DkaTeP4CumsbhHBTr2yfdGlL9dEP6uGU8lYuiS8oeezQdzq16n6rQXkPuJ07GxTekzrNy9GCH2L251qZMw==
 
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"

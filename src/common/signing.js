@@ -15,12 +15,20 @@ export async function ecsign (msgHash, privateKey, chainId) {
   const sig = new Uint8Array(64);
 
   let offset = 3;
-  const rLen = _sig[0][offset];
-  const sLen = _sig[0][offset += (rLen + 2)];
+  let rLen = _sig[0][offset];
+  let sLen = _sig[0][offset += (rLen + 2)];
 
   offset = 4;
+  if (rLen > 32) {
+    rLen = 32;
+    offset++;
+  }
   sig.set(_sig[0].subarray(offset, offset += rLen), 32 - rLen);
   offset += 2;
+  if (sLen > 32) {
+    sLen = 32;
+    offset++;
+  }
   sig.set(_sig[0].subarray(offset, offset + sLen), 64 - sLen);
 
   const recovery = _sig[1];
