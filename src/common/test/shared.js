@@ -47,6 +47,8 @@ export async function produceBlocks (t, wallet) {
 
 export function getDefaultWallets () {
   const rootProvider = new ethers.providers.JsonRpcProvider(process.env.ROOT_RPC_URL);
+  // increase it because of coverage
+  rootProvider.connection.timeout = 10 * 60 * 1000;
 
   const baseKey = '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b750120';
   return {
