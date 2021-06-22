@@ -56,7 +56,7 @@ async function createFetchJson (url) {
 
       return new Promise(
         function (resolve, reject) {
-          const timeoutMsec = 5000;
+          const timeoutMsec = 500000;
           const fetchOptions = urlParse(url);
 
           fetchOptions.method = method;
