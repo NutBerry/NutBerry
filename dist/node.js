@@ -3701,6 +3701,11 @@ class Bridge$1 {
         const challengeData = await block.computeChallenge(lastChallengeOffset, this);
         let tx;
         {
+          // the nodes in the ethereum network have a (hardcoded in clienst) limit
+          // for transactions arriving in the mempool.
+          // This is not consensus related but if a transaction becomes too large,
+          // then we have problem.
+          const MAX_SAFE_CALLDATA_SIZE = 63 << 10;
           const rootBlock = await this.rootBridge.fetchJson('eth_getBlockByNumber', ['latest', false]);
           const maxGas = ~~Number(rootBlock.gasLimit);
           // Use 1/4 of the block gas limit as our target
@@ -3715,6 +3720,12 @@ class Bridge$1 {
             tmp.witnesses = witnesses;
 
             tmp = this.rootBridge.encodeChallenge(tmp);
+            if (((tmp.data.length / 2) - 2) >= MAX_SAFE_CALLDATA_SIZE) {
+              this.log(TAG, `Exceeded safe transaction size. Reducing payload.`);
+              witnesses.pop();
+              continue;
+            }
+
             tmp.from = '0x'.padEnd(42, '1');
             tmp.gas = `0x${maxGas.toString(16)}`;
 
@@ -3729,7 +3740,7 @@ class Bridge$1 {
             const complete = Number(callRes.substring(0, 66));
             const challengeOffset = Number('0x' + callRes.substring(66, 130));
 
-            this.log('challenge', { rounds, complete, challengeOffset });
+            this.log(TAG, { rounds, complete, challengeOffset });
 
             if (complete || challengeOffset > lastChallengeOffset) {
               tx = tmp;
