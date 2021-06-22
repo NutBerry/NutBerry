@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.7.6;
 
-import 'src/tsm/contracts/NutBerryTokenBridge.sol';
+import '../../tsm/contracts/NutBerryTokenBridge.sol';
 
 /// @notice Composition of EVM enabled, application specific rollup.
 /// Version 1
