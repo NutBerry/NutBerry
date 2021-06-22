@@ -1,0 +1,29 @@
+{
+  "name": "@NutBerry/NutBerry",
+  "version": "1.0.0",
+  "author": "NutBerry",
+  "license": "Unlicense",
+  "type": "module",
+  "scripts": {
+    "compile": "for x in src/*/scripts/codegen.js; do $x; done && develatus-apparatus-compile src/*/**/*.sol src/*/**/**/*.sol",
+    "test": "yarn _test \"src/*/**/*.test.js\"",
+    "_test": "yarn compile && RPC_PORT=$(printenv RPC_PORT || printf 8222) mocha --file src/common/test/mocha.js --color --bail --exit --timeout=900000 $@",
+    "_profile": "RPC_PORT=$(printenv RPC_PORT || printf 8222) node --prof --ll-prof --heap-profiler-trace-objects ./node_modules/.bin/mocha --file src/common/test/mocha.js --color --bail --exit --timeout=900000 $@",
+    "coverage": "yarn compile && develatus-apparatus",
+    "dist:node": "rollup -c rollup.config.js -f es -i src/v1/lib/index.js -o dist/node.js && scripts/fixBundle.js dist/node.js",
+    "dist:txBuilder": "rollup -c rollup.config.js -f es -i src/v1/lib/TransactionBuilder.js -o dist/TransactionBuilder.js && scripts/fixBundle.js dist/TransactionBuilder.js",
+    "dist:replayTool": "rollup -c rollup.config.js -f es -i src/tools/replayTool.js -o dist/replayTool.js && scripts/fixBundle.js dist/replayTool.js",
+    "dist": "yarn dist:node && yarn dist:txBuilder && yarn dist:replayTool"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "=13.0.0",
+    "@rollup/plugin-json": "=4.1.0",
+    "@rollup/plugin-node-resolve": "=8.0.1",
+    "develatus-apparatus": "https://github.com/pinkiebell/develatus-apparatus/archive/refs/tags/v0.3.8.tar.gz",
+    "ethers": "=5.3.0",
+    "mocha": "=8.3.2",
+    "noble-secp256k1": "=1.0.3",
+    "rollup": "=2.14.0",
+    "solc": "=0.7.6"
+  }
+}

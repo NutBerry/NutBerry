@@ -1,0 +1,33 @@
+name: Update dist files
+on:
+  push:
+    branches:
+    - master
+    - release/*
+
+  pull_request_review_comment:
+    types: [created, edited]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.comment.body == '/DIST'
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup
+      run: docker-compose up --timeout 1 --exit-code-from dev
+
+    - name: yarn dist
+      run: docker-compose run dev -c 'yarn dist'
+
+    - name: Commit and push if changed
+      if: success()
+      run: |-
+        git config --global user.email 'bot@github.action'
+        git config --global user.name 'github action'
+        git commit -am 'dist/: Updated dist files' || exit 0
+        git push
