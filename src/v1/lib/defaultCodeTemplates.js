@@ -61,8 +61,12 @@ contract ${contractName}Challenge {
           }
           witnessOffset := add(witnessOffset, mul(nProofElements, 32))
 
-          // store key, value
-          sstore(key, value)
+          // only store the value if the key is in the tree.
+          // Consumers must take care of not introducing key collisions for L1 storage vs L2 storage.
+          if inTree {
+            sstore(key, value)
+          }
+
           // store key (for calldata)
           mstore(memPtr, key)
           memPtr := add(memPtr, 32)
@@ -77,6 +81,10 @@ contract ${contractName}Challenge {
           let witnessOffsetCopy := witnessOffset
           // storage writes (access)
           nPairs := calldataload(witnessOffsetCopy)
+          if gt(nPairs, 0xff) {
+            // too large
+            revert(0, 0)
+          }
           witnessOffsetCopy := add(witnessOffsetCopy, 32)
 
           let bitmap := 0
@@ -138,6 +146,7 @@ contract ${contractName}Challenge {
             revert(0, 0)
           }
 
+          // validate & clean write accesss
           nPairs := calldataload(witnessOffset)
           witnessOffset := add(witnessOffset, 32)
 
@@ -155,6 +164,8 @@ contract ${contractName}Challenge {
             }
             // calculate new state root
             rootHash := updateTree(witnessOffset, nProofElements, key, sload(key))
+            // reset storage slot
+            sstore(key, 0)
             witnessOffset := add(witnessOffset, mul(nProofElements, 32))
           }
         }

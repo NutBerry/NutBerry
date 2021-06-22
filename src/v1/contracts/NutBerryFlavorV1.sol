@@ -102,7 +102,7 @@ contract NutBerryFlavorV1 is NutBerryTokenBridge {
 
   /// @dev Returns the timestamp (in seconds) of the block this transaction is part of.
   /// It returns the equivalent of `~~(Date.now() / 1000)` for a not yet submitted block - (L2).
-  function _getTime () internal virtual view returns (uint256 ret) {
+  function _getTime () internal virtual returns (uint256 ret) {
     assembly {
       switch origin()
       case 0 {

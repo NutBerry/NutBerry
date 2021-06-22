@@ -15,7 +15,7 @@ contract NutBerryTokenBridge is NutBerryCore {
   /// Intended to be used in a L1 context.
   /// @return tokenType Either `1` for ERC-20 or `2` for ERC-721 like contracts (NFTs).
   function _probeTokenType (address token, uint256 tokenId) internal returns (uint256 tokenType) {
-    uint256 key = _TOKEN_TYPE_KEY(token);
+    uint256 key = _L1_TOKEN_TYPE_KEY(token);
     assembly {
       tokenType := sload(key)
 
@@ -189,6 +189,14 @@ contract NutBerryTokenBridge is NutBerryCore {
       mstore(64, tokenId)
       ret := keccak256(0, 96)
       mstore(64, backup)
+    }
+  }
+
+  function _L1_TOKEN_TYPE_KEY (address token) internal pure returns (uint256 ret) {
+    assembly {
+      mstore(0, 0x9e605931b4eb546bb835cd7af4f2eb8c79ca4254e07a7c8807e14ea0c9b99084)
+      mstore(32, token)
+      ret := keccak256(0, 64)
     }
   }
 
