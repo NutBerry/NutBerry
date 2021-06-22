@@ -47,17 +47,35 @@ export function ecrecover (msgHash, v, r, s, chainId) {
     throw new Error('Invalid signature v value');
   }
 
+  let skipR = 0;
+  for (const v of r) {
+    if (v === 0) {
+      skipR++;
+    }
+    break;
+  }
+  let skipS = 0;
+  for (const v of s) {
+    if (v === 0) {
+      skipS++;
+    }
+    break;
+  }
+
   // DER encoding
   // 0x30${length}02${rLen}${r}02${sLen}${s}
-  const sig = new Uint8Array(70);
+  const rLen = r.length - skipR;
+  const sLen = s.length - skipS;
+  const sig = new Uint8Array(6 + rLen + sLen);
   sig[0] = 48;
-  sig[1] = 68;
+  sig[1] = sig.length - 2;
   sig[2] = 2;
-  sig[3] = 32;
-  sig.set(r, 4 + (32 - r.length));
-  sig[36] = 2;
-  sig[37] = 32;
-  sig.set(s, 38 + (32 - s.length));
+  sig[3] = rLen;
+  sig.set(r.subarray(skipR), 4);
+  let offset = 4 + rLen;
+  sig[offset++] = 2;
+  sig[offset++] = sLen;
+  sig.set(s.subarray(skipS), offset);
 
   return secp.recoverPublicKey(msgHash, sig, recovery).slice(1);
 }
