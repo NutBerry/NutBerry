@@ -2324,23 +2324,13 @@ class Methods {
 
   static async 'debug_storage' (obj, bridge) {
     const bbt = bridge.pendingBlock.bbt;
-    const other = new bridge.pendingBlock.bbt.constructor();
-    const storage = bridge.pendingBlock.inventory.storage;
-
-    for (const k in storage) {
-      other.add(BigInt(k), BigInt(storage[k]));
-    }
-
-    if (other.root.hash !== bbt.root.hash) {
-      throw new Error('stateRoot mismatch on client');
-    }
-
     const stateRootBridge = BigInt(await bridge.rootBridge.stateRoot());
+
     if (stateRootBridge !== bbt.root.hash) {
       throw new Error('stateRoot mismatch on contract');
     }
 
-    return storage;
+    return bridge.pendingBlock.inventory.storage;
   }
 
   static 'web3_clientVersion' (obj, bridge) {
@@ -6207,6 +6197,16 @@ class Block extends Block$1 {
     runtime.stepCount = 0x1fffff;
     const state = await runtime.run({ address, caller, code, data, customEnvironment, bridge });
 
+    {
+      const MAX_STORAGE_SLOTS = 0xff;
+      const totalStorageSlots = Object.keys(customEnvironment.reads).length +
+        Object.keys(customEnvironment.writes).length;
+
+      if (totalStorageSlots > MAX_STORAGE_SLOTS) {
+        throw new Error(`transaction consumes too much storage slots: ${totalStorageSlots}/${MAX_STORAGE_SLOTS}`);
+      }
+    }
+
     if (!dry) {
       // always store witnesses
       const { reads, writes } = customEnvironment;
@@ -6280,15 +6280,12 @@ class Block extends Block$1 {
 
   get bbt () {
     const bbt = this.prevBlock ? this.prevBlock.bbt.clone() : new BalancedBinaryTree();
-    let writes = {};
     for (const tx of this.transactions) {
-      if (tx.witness) {
-        writes = Object.assign(writes, tx.witness.writes);
+      const writes = tx.witness.writes;
+      for (const k in writes) {
+        const storageValue = writes[k];
+        bbt.add(BigInt(k), BigInt(storageValue));
       }
-    }
-    for (const k in writes) {
-      const storageValue = writes[k];
-      bbt.add(BigInt(k), BigInt(storageValue));
     }
 
     return bbt;
@@ -6382,9 +6379,7 @@ class Block extends Block$1 {
           for (const element of proof) {
             writeWitness += element.toString(16).padStart(64, '0');
           }
-
           writeWitnessN++;
-          console.log({k, val:tx.witness.writes[k], proof, writeWitnessN, writeWitness});
 
           // add it to the tree
           bbt.add(key, BigInt(tx.witness.writes[k]));
