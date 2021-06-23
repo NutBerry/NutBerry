@@ -237,6 +237,6 @@ contract V1TestOne is NutBerryFlavorV1, V1TestOneChallenge {
   }
 
   function signalUpgradeTo (address newImplementation) external {
-    emit NutBerryCore.RollupUpgrade(newImplementation);
+    emit NutBerryEvents.RollupUpgrade(newImplementation);
   }
 }
