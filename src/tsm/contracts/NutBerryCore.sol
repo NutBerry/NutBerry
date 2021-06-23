@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.7.6;
 
+import './NutBerryEvents.sol';
+
 /// @notice The Layer 2 core protocol.
 // Audit-1: ok
-contract NutBerryCore {
-  event BlockBeacon();
-  event CustomBlockBeacon();
-  event NewSolution();
-  event RollupUpgrade(address target);
-
+contract NutBerryCore is NutBerryEvents {
   /// @dev Constant, the maximum size a single block can be.
   /// Default: 31744 bytes
   function MAX_BLOCK_SIZE () public view virtual returns (uint24) {

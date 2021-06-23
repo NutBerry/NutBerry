@@ -147,23 +147,13 @@ export default class Methods {
 
   static async 'debug_storage' (obj, bridge) {
     const bbt = bridge.pendingBlock.bbt;
-    const other = new bridge.pendingBlock.bbt.constructor();
-    const storage = bridge.pendingBlock.inventory.storage;
-
-    for (const k in storage) {
-      other.add(BigInt(k), BigInt(storage[k]));
-    }
-
-    if (other.root.hash !== bbt.root.hash) {
-      throw new Error('stateRoot mismatch on client');
-    }
-
     const stateRootBridge = BigInt(await bridge.rootBridge.stateRoot());
+
     if (stateRootBridge !== bbt.root.hash) {
       throw new Error('stateRoot mismatch on contract');
     }
 
-    return storage;
+    return bridge.pendingBlock.inventory.storage;
   }
 
   static 'web3_clientVersion' (obj, bridge) {
