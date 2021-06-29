@@ -311,10 +311,11 @@ export default class Block {
       tx.returnData = returnValue;
 
       this.nonces[tx.from] = tx.nonce + BIG_ONE;
-      //if (errno === 0 || fromBeacon) {
-      //  this.transactionHashes.push(tx.hash);
-      //}
-      this.transactions.push(tx);
+
+      if (bridge.debugMode || errno === 0 || fromBeacon) {
+        // 'save' the transaction
+        this.transactions.push(tx);
+      }
 
       return tx;
     }

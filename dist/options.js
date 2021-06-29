@@ -113,6 +113,20 @@ const OPTIONS = [
     default: '',
     help: '`producer` to submit only blocks. `validator` for only validating the chain. Otherwise does both.',
   },
+  {
+    env: 'DISABLED_RPC_METHODS',
+    key: 'disabledRpcMethods',
+    type: String,
+    default: '',
+    help: 'Comma-separated list of rpc methods to disable, i.e `eth_call,eth_sendRawTransaction`. Authenticated requests are exempt from that list.',
+  },
+  {
+    env: 'RPC_API_KEY',
+    key: 'rpcApiKey',
+    type: String,
+    default: '',
+    help: 'A secret that a json-rpc client can put into a `auth` property on the json-rpc request to allow any rpc method to be called even if they are explicitly disabled via DISABLED_RPC_METHODS.',
+  },
 ];
 
 function printHelp () {

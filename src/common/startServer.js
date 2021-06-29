@@ -1,13 +1,28 @@
 
 export default async function startServer (bridge, { host, rpcPort }) {
+  const OPTIONS_HEADERS = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'post, get, options',
+    'access-control-allow-headers': 'origin, content-type, accept, x-requested-with',
+    'access-control-max-age': '300'
+  };
+  const DEFAULT_HEADERS = {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json'
+  };
+  const DEFLATE_HEADERS = {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json',
+    'content-encoding': 'deflate'
+  };
+  const { deflateRawSync } = await import('zlib');
+
   function log (...args) {
     console.log('Server:', ...args);
   }
 
   function onRequest (req, resp) {
     resp.sendDate = false;
-    resp.setHeader('Access-Control-Allow-Origin', '*');
-    resp.setHeader('content-type', 'application/json');
 
     if (req.method === 'POST') {
       const maxLen = 8 << 20;
@@ -33,11 +48,15 @@ export default async function startServer (bridge, { host, rpcPort }) {
       req.on('end', async function () {
         try {
           const obj = JSON.parse(body);
-
           log(obj.method);
-          resp.end(JSON.stringify(await bridge.rpcCall(obj)));
+
+          const compress = (req.headers['accept-encoding'] || '').indexOf('deflate') !== -1;
+          resp.writeHead(200, compress ? DEFLATE_HEADERS : DEFAULT_HEADERS);
+
+          const ret = JSON.stringify(await bridge.rpcCall(obj));
+          resp.end(compress ? deflateRawSync(ret) : ret);
         } catch (e) {
-          resp.writeHead(400);
+          resp.writeHead(400, DEFAULT_HEADERS);
           resp.end();
         }
       });
@@ -45,7 +64,7 @@ export default async function startServer (bridge, { host, rpcPort }) {
       return;
     }
 
-    resp.setHeader('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, X-Requested-With');
+    resp.writeHead(204, OPTIONS_HEADERS);
     resp.end();
   }
   // TODO:

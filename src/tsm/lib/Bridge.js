@@ -36,6 +36,10 @@ export default class Bridge {
     // incoming transactions
     this.maxTransactionSize = Number(options.maxTransactionSize) | 0;
 
+    // rpc related
+    this.rpcApiKey = options.rpcApiKey || '';
+    this.disabledRpcMethods = (options.disabledRpcMethods || '').split(',');
+
     // TODO: find a better place / method
     this._pendingBlockSubmission = false;
     this._lastBlockSubmission = Date.now();
@@ -682,15 +686,23 @@ export default class Bridge {
     const method = body.method;
     const { id, jsonrpc } = body;
 
-    if (!method || (method.startsWith('debug') && !this.debugMode)) {
-      return {
-        id,
-        jsonrpc,
-        error: {
-          code: -32601,
-          message: 'DebugMode is not enabled',
-        }
-      };
+    {
+      // TODO: replace simple api key with nonce + HMAC or nonce + signature
+      const authenticated = this.rpcApiKey ? body.auth === this.rpcApiKey : false;
+      if (
+        !method ||
+        ((method.startsWith('debug') && (!this.debugMode && !authenticated))) ||
+        (this.disabledRpcMethods.indexOf(method) !== -1 && !authenticated)
+      ) {
+        return {
+          id,
+          jsonrpc,
+          error: {
+            code: -32601,
+            message: 'DebugMode is not enabled or request is not authenticated',
+          }
+        };
+      }
     }
 
     if (Methods.hasOwnProperty(method)) {

@@ -1,5 +1,6 @@
 import http from 'http';
 import { Socket } from 'net';
+import ethers from 'ethers';
 
 describe('RPC', () => {
   const { NutBerryTokenBridge } = Artifacts;
@@ -11,7 +12,20 @@ describe('RPC', () => {
   before('Prepare contracts', async () => {
     bridgeL1 = await deploy(NutBerryTokenBridge, alice);
 
-    node = await startNode('../../tsm/lib/index.js', RPC_PORT, 0, bridgeL1.address, null, 0, { maxTransactionSize: 20000 });
+    node = await startNode(
+      '../../tsm/lib/index.js',
+      RPC_PORT,
+      0,
+      bridgeL1.address,
+      null,
+      0,
+      {
+        maxTransactionSize: 20000,
+        rpcApiKey: 'hello',
+        disabledRpcMethods: 'eth_call',
+        debugMode: false
+      }
+    );
   });
 
   after(async () => {
@@ -71,6 +85,45 @@ describe('RPC', () => {
     assert.equal(errorStr, 'Transaction size (20000) exceeded');
   });
 
+  it('disabled method without api key - should fail', async () => {
+    await assert.rejects(node.send('eth_call', [{ data: '0x' }]), /DebugMode is not enabled or request is not authenticated/);
+  });
+
+  it('disabled method with api key', async () => {
+    assert.deepEqual(
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ auth: 'hello', method: 'eth_call', params: ['0x'] })),
+      { result: '0x' }
+    );
+  });
+
+  it('disabled method with wrong api key', async () => {
+    assert.deepEqual(
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ auth: 'shello', method: 'eth_call', params: ['0x'] })),
+      { error: { 'code': -32601, message: 'DebugMode is not enabled or request is not authenticated' } }
+    );
+  });
+
+  it('debug method with api key', async () => {
+    assert.deepEqual(
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ auth: 'hello', method: 'debug_forwardChain', params: [] })),
+      {}
+    );
+  });
+
+  it('debug method without api key', async () => {
+    assert.deepEqual(
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ method: 'debug_forwardChain', params: [] })),
+      { error: { 'code': -32601, message: 'DebugMode is not enabled or request is not authenticated' } }
+    );
+  });
+
+  it('debug method with wrong api key', async () => {
+    assert.deepEqual(
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ auth: 's', method: 'debug_forwardChain', params: [] })),
+      { error: { 'code': -32601, message: 'DebugMode is not enabled or request is not authenticated' } }
+    );
+  });
+
   it('bad request', async () => {
     return new Promise((resolve, reject) => {
       const req = http.request(
@@ -91,7 +144,7 @@ describe('RPC', () => {
           body += buf.toString();
         });
         resp.on('end', function () {
-          assert.equal(body, `{"error":{"code":-32601,"message":"DebugMode is not enabled"}}`);
+          assert.equal(body, `{"error":{"code":-32601,"message":"DebugMode is not enabled or request is not authenticated"}}`);
           resolve();
         });
       });

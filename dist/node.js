@@ -2051,10 +2051,11 @@ class Block$1 {
       tx.returnData = returnValue;
 
       this.nonces[tx.from] = tx.nonce + BIG_ONE$5;
-      //if (errno === 0 || fromBeacon) {
-      //  this.transactionHashes.push(tx.hash);
-      //}
-      this.transactions.push(tx);
+
+      if (bridge.debugMode || errno === 0 || fromBeacon) {
+        // 'save' the transaction
+        this.transactions.push(tx);
+      }
 
       return tx;
     }
@@ -3124,6 +3125,10 @@ class Bridge$1 {
     // incoming transactions
     this.maxTransactionSize = Number(options.maxTransactionSize) | 0;
 
+    // rpc related
+    this.rpcApiKey = options.rpcApiKey || '';
+    this.disabledRpcMethods = (options.disabledRpcMethods || '').split(',');
+
     // TODO: find a better place / method
     this._pendingBlockSubmission = false;
     this._lastBlockSubmission = Date.now();
@@ -3770,15 +3775,23 @@ class Bridge$1 {
     const method = body.method;
     const { id, jsonrpc } = body;
 
-    if (!method || (method.startsWith('debug') && !this.debugMode)) {
-      return {
-        id,
-        jsonrpc,
-        error: {
-          code: -32601,
-          message: 'DebugMode is not enabled',
-        }
-      };
+    {
+      // TODO: replace simple api key with nonce + HMAC or nonce + signature
+      const authenticated = this.rpcApiKey ? body.auth === this.rpcApiKey : false;
+      if (
+        !method ||
+        ((method.startsWith('debug') && (!this.debugMode && !authenticated))) ||
+        (this.disabledRpcMethods.indexOf(method) !== -1 && !authenticated)
+      ) {
+        return {
+          id,
+          jsonrpc,
+          error: {
+            code: -32601,
+            message: 'DebugMode is not enabled or request is not authenticated',
+          }
+        };
+      }
     }
 
     if (Methods.hasOwnProperty(method)) {
@@ -6410,14 +6423,29 @@ class Bridge extends Bridge$1 {
 }
 
 async function startServer (bridge, { host, rpcPort }) {
+  const OPTIONS_HEADERS = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'post, get, options',
+    'access-control-allow-headers': 'origin, content-type, accept, x-requested-with',
+    'access-control-max-age': '300'
+  };
+  const DEFAULT_HEADERS = {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json'
+  };
+  const DEFLATE_HEADERS = {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json',
+    'content-encoding': 'deflate'
+  };
+  const { deflateRawSync } = await import('zlib');
+
   function log (...args) {
     console.log('Server:', ...args);
   }
 
   function onRequest (req, resp) {
     resp.sendDate = false;
-    resp.setHeader('Access-Control-Allow-Origin', '*');
-    resp.setHeader('content-type', 'application/json');
 
     if (req.method === 'POST') {
       const maxLen = 8 << 20;
@@ -6443,11 +6471,15 @@ async function startServer (bridge, { host, rpcPort }) {
       req.on('end', async function () {
         try {
           const obj = JSON.parse(body);
-
           log(obj.method);
-          resp.end(JSON.stringify(await bridge.rpcCall(obj)));
+
+          const compress = (req.headers['accept-encoding'] || '').indexOf('deflate') !== -1;
+          resp.writeHead(200, compress ? DEFLATE_HEADERS : DEFAULT_HEADERS);
+
+          const ret = JSON.stringify(await bridge.rpcCall(obj));
+          resp.end(compress ? deflateRawSync(ret) : ret);
         } catch (e) {
-          resp.writeHead(400);
+          resp.writeHead(400, DEFAULT_HEADERS);
           resp.end();
         }
       });
@@ -6455,7 +6487,7 @@ async function startServer (bridge, { host, rpcPort }) {
       return;
     }
 
-    resp.setHeader('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, X-Requested-With');
+    resp.writeHead(204, OPTIONS_HEADERS);
     resp.end();
   }
   // TODO:
