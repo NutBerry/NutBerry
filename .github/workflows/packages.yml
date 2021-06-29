@@ -8,10 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Login to ghcr.io
       env:
-        PAT: ${{ secrets.PAT }}
+        PAT: ${{ secrets.GITHUB_TOKEN }}
       run: printf "$PAT" | docker login --username _ --password-stdin ghcr.io
 
     - name: Build and push Docker images
