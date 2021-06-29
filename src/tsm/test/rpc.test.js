@@ -29,7 +29,9 @@ describe('RPC', () => {
   });
 
   after(async () => {
-    node.send('debug_kill', []);
+    try {
+      await ethers.utils.fetchJson(node.connection.url, JSON.stringify({ auth: 'hello', method: 'debug_kill', params: [] }));
+    } catch (e) {}
   });
 
   it('unknown method', async () => {
