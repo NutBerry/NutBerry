@@ -3332,37 +3332,40 @@ class Bridge$1 {
       if (!this.debugMode) {
         await this.forwardChain();
       }
-      // filter _pendingTransactionPool
-      if (IS_NATIVE_ENV) {
-        const tmp = [];
-
-        for (const tx of this._pendingTransactionPool) {
-          const { block } = await this.getBlockOfTransaction(tx.hash);
-
-          // if this transaction is inside a block that is lower than the pending one,
-          // then drop it
-          if (block && block.number < this.pendingBlock.number) {
-            continue;
-          }
-
-          // else append it again
-          tmp.push(tx);
-        }
-
-        // update
-        this._pendingTransactionPool = tmp;
-
-        const { writeFileSync } = await import('fs');
-        // save to file
-        writeFileSync(
-          `${this._dataDir}/txsafe.json`,
-          JSON.stringify(this._pendingTransactionPool)
-        );
-      }
     } catch (e) {
       this.log(e);
     }
     setTimeout(this._eventLoop.bind(this), this.eventCheckMs);
+  }
+
+  async _saveTxPool () {
+    // filter _pendingTransactionPool
+    if (IS_NATIVE_ENV) {
+      const tmp = [];
+
+      for (const tx of this._pendingTransactionPool) {
+        const { block } = await this.getBlockOfTransaction(tx.hash);
+
+        // if this transaction is inside a block that is lower than the pending one,
+        // then drop it
+        if (block && block.number < this.pendingBlock.number) {
+          continue;
+        }
+
+        // else append it again
+        tmp.push(tx);
+      }
+
+      // update
+      this._pendingTransactionPool = tmp;
+
+      const { writeFileSync } = await import('fs');
+      // save to file
+      writeFileSync(
+        `${this._dataDir}/txsafe.json`,
+        JSON.stringify(this._pendingTransactionPool)
+      );
+    }
   }
 
   async onDeposit (data, rootBlock) {
@@ -3538,6 +3541,8 @@ class Bridge$1 {
     // store tx into pending pool. We might get duplicates, but this is not an error per se.
     {
       this._pendingTransactionPool.push({ hash: tx.hash, raw: hexString });
+      // async
+      this._saveTxPool();
     }
 
     return tx.hash;
