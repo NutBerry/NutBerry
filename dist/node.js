@@ -3847,7 +3847,7 @@ class Bridge$1 {
     if (!tx.gas) {
       // TODO: make gasPadding a config option
       const gasPadding = 50000;
-      tx.gas = `0x${(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding).toString(16)}`;
+      tx.gas = `0x${(~~Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding).toString(16)}`;
       const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
       if (ret.error) {
         throw new Error(ret.error);
