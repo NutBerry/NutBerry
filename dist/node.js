@@ -6272,7 +6272,11 @@ class Block extends Block$1 {
         if (topic === INTERNAL_EVENT_DEADLINE_TOPIC) {
           // this event doesn't matter if this block is already submitted
           if (isPending) {
-            const time = Number(log.topics[1]);
+            let time = Number(log.topics[1]);
+            if (time < 1609459200) {
+              // assuming relative seconds
+              time = ~~(Date.now() / 1000) + time;
+            }
 
             if (this.submissionDeadline === 0 || time < this.submissionDeadline) {
               this.submissionDeadline = time;
