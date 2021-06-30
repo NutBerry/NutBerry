@@ -6,13 +6,15 @@ import Keccak256 from './Keccak256.js';
 const keccak = new Keccak256();
 
 export function stripZeros (v) {
-  if (v.length === 0) {
+  const len = v.length;
+  if (len === 0) {
     return v;
   }
 
   let start = 0;
+  const cmp = typeof v === 'string' ? '0' : 0;
 
-  while (v[start] === 0) {
+  while (start < len && v[start] === cmp) {
     start++
   }
 

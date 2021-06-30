@@ -1622,13 +1622,15 @@ class Keccak256 {
 const keccak$1 = new Keccak256();
 
 function stripZeros (v) {
-  if (v.length === 0) {
+  const len = v.length;
+  if (len === 0) {
     return v;
   }
 
   let start = 0;
+  const cmp = typeof v === 'string' ? '0' : 0;
 
-  while (v[start] === 0) {
+  while (start < len && v[start] === cmp) {
     start++;
   }
 
@@ -3843,7 +3845,7 @@ class Bridge$1 {
 
     let gasPrice = BigInt(await this.rootBridge.fetchJson('eth_gasPrice', []));
     // TODO: make this a config option
-    gasPrice = (gasPrice / 100n) * 130n;
+    gasPrice = ((gasPrice / 100n) * 130n) || 1n;
     const tx = {
       from: this.signer,
       to: txData.to,
@@ -3854,7 +3856,8 @@ class Bridge$1 {
     if (!tx.gas) {
       // TODO: make gasPadding a config option
       const gasPadding = 50000;
-      tx.gas = `0x${(~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16)}`;
+      const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16);
+      tx.gas = `0x${gas}`;
       const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
       if (ret.error) {
         throw new Error(ret.error);

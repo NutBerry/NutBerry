@@ -754,7 +754,7 @@ export default class Bridge {
 
     let gasPrice = BigInt(await this.rootBridge.fetchJson('eth_gasPrice', []));
     // TODO: make this a config option
-    gasPrice = (gasPrice / 100n) * 130n;
+    gasPrice = ((gasPrice / 100n) * 130n) || 1n;
     const tx = {
       from: this.signer,
       to: txData.to,
@@ -765,7 +765,8 @@ export default class Bridge {
     if (!tx.gas) {
       // TODO: make gasPadding a config option
       const gasPadding = 50000;
-      tx.gas = `0x${(~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16)}`;
+      const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16);
+      tx.gas = `0x${gas}`;
       const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
       if (ret.error) {
         throw new Error(ret.error);
