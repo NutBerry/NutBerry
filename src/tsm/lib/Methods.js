@@ -156,6 +156,10 @@ export default class Methods {
     return bridge.pendingBlock.inventory.storage;
   }
 
+  static 'debug_rollupStats' (obj, bridge) {
+    return bridge.rollupStats();
+  }
+
   static 'web3_clientVersion' (obj, bridge) {
     return bridge.rootBridge.protocolAddress;
   }

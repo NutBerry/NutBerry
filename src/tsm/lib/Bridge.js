@@ -324,7 +324,7 @@ export default class Bridge {
     }
 
     block.submittedSolutionHash = solutionHash;
-    block.submittedSolutionTime = evt.blockNumber;
+    block.submittedSolutionBlockNumber = Number(evt.blockNumber);
   }
 
   async onRollupUpgrade (address, evt) {
@@ -832,5 +832,45 @@ export default class Bridge {
     const size = this.pendingBlock.calculateSize();
 
     return size >= this.blockSizeThreshold || timeSinceLastSubmission >= this.blockTimeThreshold;
+  }
+
+  async rollupStats () {
+    const blockWindow = [];
+    const finalizedHeight = await this.rootBridge.finalizedHeight();
+    const next = finalizedHeight + BIG_ONE;
+
+    // we can do this for the next 256 pending blocks
+    for (let i = 0; i < 256; i++) {
+      const block = await this.getBlockByNumber(next + BigInt(i));
+
+      if (!block || !block.hash) {
+        break;
+      }
+
+      const canFinalize = await this.rootBridge.canFinalizeBlock(block.number);
+      const expectedSolutionHash = (await block.computeSolution(this)).hash;
+      const submittedSolutionHash = block.submittedSolutionHash || null;
+      const submittedSolutionBlockNumber = block.submittedSolutionBlockNumber || null;
+
+      blockWindow.push(
+        {
+          blockNumber: Number(block.number),
+          disputed: await this.rootBridge.isDisputed(block.number),
+          expectedSolutionHash,
+          submittedSolutionHash,
+          submittedSolutionBlockNumber,
+          canFinalize
+        }
+      );
+    }
+
+    const nUnsubmittedTransactions = this.pendingBlock.transactions.length;
+    const challengeOffset = await this.rootBridge.challengeOffset();
+    return {
+      blockWindow,
+      nUnsubmittedTransactions,
+      challengeOffset,
+      finalizedHeight: Number(finalizedHeight)
+    };
   }
 }
