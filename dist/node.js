@@ -2054,7 +2054,7 @@ class Block$1 {
 
       this.nonces[tx.from] = tx.nonce + BIG_ONE$5;
 
-      if (bridge.debugMode || errno === 0 || fromBeacon) {
+      if (bridge.alwaysKeepRevertedTransactions || errno === 0 || fromBeacon) {
         // 'save' the transaction
         this.transactions.push(tx);
       }
@@ -3127,6 +3127,8 @@ class Bridge$1 {
     this.submitSolutionThreshold = options.submitSolutionThreshold || 256;
     // challenge behaviour
     this.alwaysChallengeDisputedBlocks = !!options.alwaysChallengeDisputedBlocks;
+    // pending block tx pool behaviour
+    this.alwaysKeepRevertedTransactions = this.debugMode || !!options.alwaysKeepRevertedTransactions;
 
     // incoming transactions
     this.maxTransactionSize = Number(options.maxTransactionSize) | 0;

@@ -32,6 +32,8 @@ export default class Bridge {
     this.submitSolutionThreshold = options.submitSolutionThreshold || 256;
     // challenge behaviour
     this.alwaysChallengeDisputedBlocks = !!options.alwaysChallengeDisputedBlocks;
+    // pending block tx pool behaviour
+    this.alwaysKeepRevertedTransactions = this.debugMode || !!options.alwaysKeepRevertedTransactions;
 
     // incoming transactions
     this.maxTransactionSize = Number(options.maxTransactionSize) | 0;

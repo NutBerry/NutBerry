@@ -93,6 +93,13 @@ const OPTIONS = [
     help: 'If non-zero, indicates the node to always challenge disputed blocks instead of waiting for the finalization target.',
   },
   {
+    env: 'ALWAYS_KEEP_REVERTED_TRANSACTIONS',
+    key: 'alwaysKeepRevertedTransactions',
+    type: Number,
+    default: 0,
+    help: 'If non-zero, indicates that the node should keep reverted transactions. This only applies for blocks that are not submitted',
+  },
+  {
     env: 'MAX_TRANSACTION_SIZE',
     key: 'maxTransactionSize',
     type: Number,

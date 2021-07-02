@@ -312,7 +312,7 @@ export default class Block {
 
       this.nonces[tx.from] = tx.nonce + BIG_ONE;
 
-      if (bridge.debugMode || errno === 0 || fromBeacon) {
+      if (bridge.alwaysKeepRevertedTransactions || errno === 0 || fromBeacon) {
         // 'save' the transaction
         this.transactions.push(tx);
       }
