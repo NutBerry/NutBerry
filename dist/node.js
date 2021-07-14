@@ -3948,6 +3948,8 @@ class Bridge$1 {
       const expectedSolutionHash = (await block.computeSolution(this)).hash;
       const submittedSolutionHash = block.submittedSolutionHash || null;
       const submittedSolutionBlockNumber = block.submittedSolutionBlockNumber || null;
+      const regularFinalizationTarget =
+        submittedSolutionBlockNumber ? submittedSolutionBlockNumber + this.INSPECTION_PERIOD : null;
 
       blockWindow.push(
         {
@@ -3956,6 +3958,7 @@ class Bridge$1 {
           expectedSolutionHash,
           submittedSolutionHash,
           submittedSolutionBlockNumber,
+          regularFinalizationTarget,
           canFinalize
         }
       );

@@ -853,6 +853,8 @@ export default class Bridge {
       const expectedSolutionHash = (await block.computeSolution(this)).hash;
       const submittedSolutionHash = block.submittedSolutionHash || null;
       const submittedSolutionBlockNumber = block.submittedSolutionBlockNumber || null;
+      const regularFinalizationTarget =
+        submittedSolutionBlockNumber ? submittedSolutionBlockNumber + this.INSPECTION_PERIOD : null;
 
       blockWindow.push(
         {
@@ -861,6 +863,7 @@ export default class Bridge {
           expectedSolutionHash,
           submittedSolutionHash,
           submittedSolutionBlockNumber,
+          regularFinalizationTarget,
           canFinalize
         }
       );
