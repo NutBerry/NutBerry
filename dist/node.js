@@ -2340,6 +2340,21 @@ class Methods {
     return bridge.rollupStats();
   }
 
+  static async 'debug_dropTransaction' (obj, bridge) {
+    const targetHash = obj.params[0];
+    const newHead = new bridge.pendingBlock.constructor(bridge.pendingBlock.prevBlock);
+    for (const tx of bridge.pendingBlock.transactions) {
+      if (tx.hash === targetHash) {
+        continue;
+      }
+      await newHead.addDecodedTransaction(tx, bridge);
+    }
+    if (bridge.pendingBlock.transactions.length - 1 !== newHead.transactions.length) {
+      throw new Error('newHead transaction count mismatch');
+    }
+    bridge.pendingBlock = newHead;
+  }
+
   static 'web3_clientVersion' (obj, bridge) {
     return bridge.rootBridge.protocolAddress;
   }
@@ -2528,6 +2543,7 @@ class Methods {
     const filterTopics = eventFilter.topics || [];
     const filterMessageTypes = eventFilter.primaryTypes || [];
     const maxResults = eventFilter.maxResults | 0;
+    const flagIncludeTx = !!eventFilter.includeTx;
     const res = [];
 
     if (!(filterTopics.length || filterMessageTypes.length)) {
@@ -2583,18 +2599,33 @@ class Methods {
           const log = tx.logs[logIndex];
           const filterTopicsLength = filterTopics.length;
           let skip = false;
+          let hasWildcard = false;
+          let atLeastOneWildcardMatch = false;
 
           for (let t = 0; t < filterTopicsLength; t++) {
             const q = filterTopics[t];
             if (!q) {
               continue;
             }
-            if (log.topics[t] !== q) {
+
+            const isWildcard = Array.isArray(q) && q[0] === null;
+            if (isWildcard) {
+              hasWildcard = true;
+            }
+            if (q.indexOf(log.topics[t]) === -1) {
+              if (isWildcard) {
+                continue;
+              }
               skip = true;
               break;
             }
+
+            if (isWildcard) {
+              atLeastOneWildcardMatch = true;
+            }
           }
-          if (skip) {
+
+          if (skip || (hasWildcard && !atLeastOneWildcardMatch)) {
             continue;
           }
 
@@ -2610,6 +2641,14 @@ class Methods {
             logIndex: idx,
             blockHash,
           };
+          if (flagIncludeTx) {
+            obj.transaction = {
+              primaryType: tx.primaryType,
+              message: formatObject(tx.message),
+              from: tx.from,
+              to: tx.to,
+            };
+          }
 
           if (res.push(obj) === maxResults) {
             return res;
@@ -2655,12 +2694,11 @@ async function createFetchJson (url) {
     const { parse } = await import('url');
     const urlParse = parse;
 
-    return async function (rpcMethod, params) {
+    return async function (rpcMethod, params, timeoutMsec = 500000) {
       const payload = JSON.stringify({ jsonrpc: '2.0', id: 1, method: rpcMethod, params });
 
       return new Promise(
         function (resolve, reject) {
-          const timeoutMsec = 500000;
           const fetchOptions = urlParse(url);
 
           fetchOptions.method = method;
@@ -3015,7 +3053,7 @@ class RootBridge {
         };
 
         this.log(`syncing from: ${this.eventFilter.fromBlock} to: ${this.eventFilter.toBlock}`);
-        res = await this.fetchJson('eth_getLogs', [r]);
+        res = await this.fetchJson('eth_getLogs', [r], 5000);
       } catch (e) {
         this.log(e);
 
@@ -3066,7 +3104,7 @@ class RootBridge {
         topics: this.eventFilter.topics,
       };
       // fetch
-      const events = await this.fetchJson('eth_getLogs', [r]);
+      const events = await this.fetchJson('eth_getLogs', [r], 5000);
 
       if (events.length) {
         this.log(`${events.length} new events`);
@@ -3715,7 +3753,7 @@ class Bridge$1 {
           // then we have problem.
           const MAX_SAFE_CALLDATA_SIZE = 63 << 10;
           const rootBlock = await this.rootBridge.fetchJson('eth_getBlockByNumber', ['latest', false]);
-          const maxGas = ~~Number(rootBlock.gasLimit);
+          const maxGas = ~~Number(rootBlock.gasLimit) - 1_000_000;
           // Use 1/4 of the block gas limit as our target
           // TODO: make this configurable
           //const targetGas = ~~(maxGas * 0.25);
@@ -3742,13 +3780,14 @@ class Bridge$1 {
               callRes = await this.rootBridge.fetchJson('eth_call', [tmp, 'latest']);
             } catch (e) {
               this.log(TAG, e);
-              callRes = '0x0';
+              witnesses.pop();
+              continue;
             }
 
             const complete = Number(callRes.substring(0, 66));
             const challengeOffset = Number('0x' + callRes.substring(66, 130));
 
-            this.log(TAG, { rounds, complete, challengeOffset });
+            this.log(TAG, { rounds, complete, challengeOffset, lastChallengeOffset });
 
             if (complete || challengeOffset > lastChallengeOffset) {
               tx = tmp;
@@ -3849,6 +3888,7 @@ class Bridge$1 {
       throw new Error('Read-only mode');
     }
 
+    const TAG = 'wrapSendTransaction';
     let gasPrice = BigInt(await this.rootBridge.fetchJson('eth_gasPrice', []));
     // TODO: make this a config option
     gasPrice = ((gasPrice / 100n) * 130n) || 1n;
@@ -3861,17 +3901,27 @@ class Bridge$1 {
 
     if (!tx.gas) {
       // TODO: make gasPadding a config option
-      const gasPadding = 50000;
-      const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16);
-      tx.gas = `0x${gas}`;
-      const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
-      if (ret.error) {
-        throw new Error(ret.error);
+       try {
+        const gasPadding = 50000;
+        const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx, 'latest']))) + gasPadding)).toString(16);
+        tx.gas = `0x${gas}`;
+      } catch (e) {
+        this.log(TAG, 'eth_estimateGas', e);
+        throw e;
       }
-      tx.accessList = ret.accessList;
+      try {
+        const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
+        if (ret.error) {
+          throw new Error(ret.error);
+        }
+        tx.accessList = ret.accessList;
+      } catch (e) {
+        this.log(TAG, 'eth_createAccessList', e);
+        throw e;
+      }
     }
 
-    tx.nonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'pending']));
+    tx.nonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'latest']));
 
     const { txHash, rawTxHex } = await signRlpTransaction(tx, this.privKey, this.CHAIN_ID);
 
@@ -3879,7 +3929,7 @@ class Bridge$1 {
 
     // TODO bound loop size
     while (true) {
-      const latestNonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'pending']));
+      const latestNonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'latest']));
 
       if (latestNonce > tx.nonce) {
         break;

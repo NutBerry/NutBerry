@@ -51,12 +51,11 @@ async function createFetchJson (url) {
     const { parse } = await import('url');
     const urlParse = parse;
 
-    return async function (rpcMethod, params) {
+    return async function (rpcMethod, params, timeoutMsec = 500000) {
       const payload = JSON.stringify({ jsonrpc: '2.0', id: 1, method: rpcMethod, params });
 
       return new Promise(
         function (resolve, reject) {
-          const timeoutMsec = 500000;
           const fetchOptions = urlParse(url);
 
           fetchOptions.method = method;
