@@ -160,6 +160,21 @@ export default class Methods {
     return bridge.rollupStats();
   }
 
+  static async 'debug_dropTransaction' (obj, bridge) {
+    const targetHash = obj.params[0];
+    const newHead = new bridge.pendingBlock.constructor(bridge.pendingBlock.prevBlock);
+    for (const tx of bridge.pendingBlock.transactions) {
+      if (tx.hash === targetHash) {
+        continue;
+      }
+      await newHead.addDecodedTransaction(tx, bridge);
+    }
+    if (bridge.pendingBlock.transactions.length - 1 !== newHead.transactions.length) {
+      throw new Error('newHead transaction count mismatch');
+    }
+    bridge.pendingBlock = newHead;
+  }
+
   static 'web3_clientVersion' (obj, bridge) {
     return bridge.rootBridge.protocolAddress;
   }
@@ -348,6 +363,7 @@ export default class Methods {
     const filterTopics = eventFilter.topics || [];
     const filterMessageTypes = eventFilter.primaryTypes || [];
     const maxResults = eventFilter.maxResults | 0;
+    const flagIncludeTx = !!eventFilter.includeTx;
     const res = [];
 
     if (!(filterTopics.length || filterMessageTypes.length)) {
@@ -403,18 +419,33 @@ export default class Methods {
           const log = tx.logs[logIndex];
           const filterTopicsLength = filterTopics.length;
           let skip = false;
+          let hasWildcard = false;
+          let atLeastOneWildcardMatch = false;
 
           for (let t = 0; t < filterTopicsLength; t++) {
             const q = filterTopics[t];
             if (!q) {
               continue;
             }
-            if (log.topics[t] !== q) {
+
+            const isWildcard = Array.isArray(q) && q[0] === null;
+            if (isWildcard) {
+              hasWildcard = true;
+            }
+            if (q.indexOf(log.topics[t]) === -1) {
+              if (isWildcard) {
+                continue;
+              }
               skip = true;
               break;
             }
+
+            if (isWildcard) {
+              atLeastOneWildcardMatch = true;
+            }
           }
-          if (skip) {
+
+          if (skip || (hasWildcard && !atLeastOneWildcardMatch)) {
             continue;
           }
 
@@ -430,6 +461,14 @@ export default class Methods {
             logIndex: idx,
             blockHash,
           };
+          if (flagIncludeTx) {
+            obj.transaction = {
+              primaryType: tx.primaryType,
+              message: formatObject(tx.message),
+              from: tx.from,
+              to: tx.to,
+            };
+          }
 
           if (res.push(obj) === maxResults) {
             return res;
