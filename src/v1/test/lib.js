@@ -7,6 +7,25 @@ import TYPED_DATA from './typedData2.js';
 
 const { V1TestOne, V1TestOneDebug, ERC721, ERC20 } = Artifacts;
 
+async function aggregateGasUsed (wallet, startBlockN) {
+  const tgt = (await wallet.getAddress()).toLowerCase();
+  const latestBlockN = await wallet.provider.getBlockNumber();
+  let gasUsed = 0;
+
+  for (let i = startBlockN; i <= latestBlockN; i++) {
+    const block = await wallet.provider.send('eth_getBlockByNumber', ['0x' + i.toString(16), true]);
+    for (const tx of block.transactions) {
+      if (tx.from.toLowerCase() !== tgt) {
+        continue;
+      }
+      const receipt = await wallet.provider.send('eth_getTransactionReceipt', [tx.hash]);
+      gasUsed += Number(receipt.gasUsed);
+    }
+  }
+
+  return gasUsed;
+}
+
 class MyRootBridge extends RootBridge {
   constructor (options) {
     super(options);
@@ -45,7 +64,7 @@ export default function setupWorkflow ({ wallet, workflow }) {
     let minted = 0;
     let cumulativeDeposits = BigInt(0);
     let operatorBalanceBefore;
-    let walletBalanceBefore;
+    let startBlockN;
 
     async function checkExits () {
       it('check exits', async () => {
@@ -74,7 +93,7 @@ export default function setupWorkflow ({ wallet, workflow }) {
       bridge = context.bridgeL1.connect(context.myNode);
 
       operatorBalanceBefore = await operatorWallet.getBalance();
-      walletBalanceBefore = await wallet.getBalance();
+      startBlockN = await wallet.provider.getBlockNumber();
     });
 
     function withdrawERC20 () {
@@ -448,7 +467,7 @@ export default function setupWorkflow ({ wallet, workflow }) {
           );
         });
 
-        it('Bob: exit', async () => {
+        it('Bob: exit ERC-721', async () => {
           //const oldOwner = await bridge.getERC721Exit(erc721.address, nftId);
           //assert.equal(oldOwner, '0x0000000000000000000000000000000000000000', 'nft owner');
 
@@ -516,25 +535,21 @@ export default function setupWorkflow ({ wallet, workflow }) {
       });
     });
 
-    describe('check ether balances', () => {
-      it('check balance of wallet', async () => {
-        // just measure the ether balance
-        const balance = await wallet.getBalance();
-        const paid = walletBalanceBefore.sub(balance).toNumber();
+    describe('check gas usage', () => {
+      it('check wallet', async () => {
+        const gasUsed = await aggregateGasUsed(wallet, startBlockN);
         const maxDelta = 1000;
-        const baseline = 3095109;
-        // before berlin = 3042052
-        // after berlin  = 3075052
+        // london doubles the cost
+        const baseline = 6359307;
 
-        console.log({ baseline, paid });
-        assert.ok(paid < baseline + maxDelta, `gas usage should not be too high`);
+        console.log({ baseline, gasUsed });
+        assert.ok(gasUsed < baseline + maxDelta, `gas usage should not be too high`);
       });
 
-      it('check balance of node operator wallet', async () => {
-        const balance = await operatorWallet.getBalance();
-        const paid = operatorBalanceBefore.sub(balance).toNumber();
+      it('check node operator wallet', async () => {
+        const gasUsed = await aggregateGasUsed(operatorWallet, startBlockN);
 
-        console.log({ paid });
+        console.log({ gasUsed });
       });
     });
 
