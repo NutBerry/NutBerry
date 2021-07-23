@@ -320,7 +320,7 @@ export default class RootBridge {
         };
 
         this.log(`syncing from: ${this.eventFilter.fromBlock} to: ${this.eventFilter.toBlock}`);
-        res = await this.fetchJson('eth_getLogs', [r]);
+        res = await this.fetchJson('eth_getLogs', [r], 5000);
       } catch (e) {
         this.log(e);
 
@@ -371,7 +371,7 @@ export default class RootBridge {
         topics: this.eventFilter.topics,
       };
       // fetch
-      const events = await this.fetchJson('eth_getLogs', [r]);
+      const events = await this.fetchJson('eth_getLogs', [r], 5000);
 
       if (events.length) {
         this.log(`${events.length} new events`);

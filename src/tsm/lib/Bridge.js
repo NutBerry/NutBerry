@@ -620,7 +620,7 @@ export default class Bridge {
           // then we have problem.
           const MAX_SAFE_CALLDATA_SIZE = 63 << 10;
           const rootBlock = await this.rootBridge.fetchJson('eth_getBlockByNumber', ['latest', false]);
-          const maxGas = ~~Number(rootBlock.gasLimit);
+          const maxGas = ~~Number(rootBlock.gasLimit) - 1_000_000;
           // Use 1/4 of the block gas limit as our target
           // TODO: make this configurable
           //const targetGas = ~~(maxGas * 0.25);
@@ -647,13 +647,14 @@ export default class Bridge {
               callRes = await this.rootBridge.fetchJson('eth_call', [tmp, 'latest']);
             } catch (e) {
               this.log(TAG, e);
-              callRes = '0x0';
+              witnesses.pop();
+              continue;
             }
 
             const complete = Number(callRes.substring(0, 66));
             const challengeOffset = Number('0x' + callRes.substring(66, 130));
 
-            this.log(TAG, { rounds, complete, challengeOffset });
+            this.log(TAG, { rounds, complete, challengeOffset, lastChallengeOffset });
 
             if (complete || challengeOffset > lastChallengeOffset) {
               tx = tmp;
@@ -754,6 +755,7 @@ export default class Bridge {
       throw new Error('Read-only mode');
     }
 
+    const TAG = 'wrapSendTransaction';
     let gasPrice = BigInt(await this.rootBridge.fetchJson('eth_gasPrice', []));
     // TODO: make this a config option
     gasPrice = ((gasPrice / 100n) * 130n) || 1n;
@@ -766,17 +768,27 @@ export default class Bridge {
 
     if (!tx.gas) {
       // TODO: make gasPadding a config option
-      const gasPadding = 50000;
-      const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx]))) + gasPadding)).toString(16);
-      tx.gas = `0x${gas}`;
-      const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
-      if (ret.error) {
-        throw new Error(ret.error);
+       try {
+        const gasPadding = 50000;
+        const gas = (~~(Number((await this.rootBridge.fetchJson('eth_estimateGas', [tx, 'latest']))) + gasPadding)).toString(16);
+        tx.gas = `0x${gas}`;
+      } catch (e) {
+        this.log(TAG, 'eth_estimateGas', e);
+        throw e;
       }
-      tx.accessList = ret.accessList;
+      try {
+        const ret = await this.rootBridge.fetchJson('eth_createAccessList', [tx, 'latest']);
+        if (ret.error) {
+          throw new Error(ret.error);
+        }
+        tx.accessList = ret.accessList;
+      } catch (e) {
+        this.log(TAG, 'eth_createAccessList', e);
+        throw e;
+      }
     }
 
-    tx.nonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'pending']));
+    tx.nonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'latest']));
 
     const { txHash, rawTxHex } = await signRlpTransaction(tx, this.privKey, this.CHAIN_ID);
 
@@ -784,7 +796,7 @@ export default class Bridge {
 
     // TODO bound loop size
     while (true) {
-      const latestNonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'pending']));
+      const latestNonce = Number(await this.rootBridge.fetchJson('eth_getTransactionCount', [this.signer, 'latest']));
 
       if (latestNonce > tx.nonce) {
         break;
