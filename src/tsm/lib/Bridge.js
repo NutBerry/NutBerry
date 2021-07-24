@@ -30,6 +30,7 @@ export default class Bridge {
 
     // options regarding solution submission behaviour
     this.submitSolutionThreshold = options.submitSolutionThreshold || 256;
+    this.submitSolutionTimeThreshold = (options.submitSolutionTimeThreshold * 1000) || 60000;
     // challenge behaviour
     this.alwaysChallengeDisputedBlocks = !!options.alwaysChallengeDisputedBlocks;
     // pending block tx pool behaviour
@@ -45,6 +46,7 @@ export default class Bridge {
     // TODO: find a better place / method
     this._pendingBlockSubmission = false;
     this._lastBlockSubmission = Date.now();
+    this._lastSolutionSubmitted = Date.now();
 
     if (options.privKey) {
       this.privKey = options.privKey.replace('0x', '');
@@ -203,7 +205,10 @@ export default class Bridge {
 
       // submit them, if any
       // honor config parameter that specifies a threshold for submission
-      if (pendingSolutions.length >= this.submitSolutionThreshold) {
+      if (
+        pendingSolutions.length >= this.submitSolutionThreshold ||
+        Date.now() > this._lastSolutionSubmitted + this.submitSolutionTimeThreshold
+      ) {
         await this.submitSolution(pendingSolutions);
       }
 
@@ -522,6 +527,7 @@ export default class Bridge {
       this.rootBridge.encodeSolution(firstBlock, data)
     );
 
+    this._lastSolutionSubmitted = Date.now();
     this.log('Bridge.submitSolution', Number(receipt.gasUsed));
 
     return true;

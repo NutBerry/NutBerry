@@ -175,6 +175,55 @@ export default class Methods {
     bridge.pendingBlock = newHead;
   }
 
+  static async 'rollup_estimateFinality' (obj, bridge) {
+    const AVG_SECONDS_PER_BLOCK = 14;
+    const FINALIZATION_DELAY = AVG_SECONDS_PER_BLOCK * 10;
+    const latestBlockN = bridge.rootBridge.eventFilter.toBlock;
+    const blockNumbers = obj.params;
+    let ret = [];
+
+    if (this._finalizedHeight === undefined) {
+      this._finalizedHeight = await bridge.rootBridge.finalizedHeight();
+      setTimeout(() => this._finalizedHeight = undefined, 10000);
+    }
+
+    for (let maybeNumber of blockNumbers) {
+      if (maybeNumber === 'latest' || maybeNumber === 'pending') {
+        maybeNumber = bridge.pendingBlock.number;
+      }
+
+      const num = BigInt(maybeNumber);
+      const block = await bridge.getBlockByNumber(num, true);
+
+      if (!block) {
+        throw new Error(`block ${num} not found`);
+      }
+
+      if (block.number <= this._finalizedHeight) {
+        ret.push('0x0');
+        continue;
+      }
+
+      if (!block.submittedSolutionHash) {
+        ret.push(toQuantity((bridge.INSPECTION_PERIOD * AVG_SECONDS_PER_BLOCK) + FINALIZATION_DELAY));
+        continue;
+      }
+
+      ret.push(
+        toQuantity(
+          (
+            Math.max(
+              0,
+              (block.submittedSolutionBlockNumber + bridge.INSPECTION_PERIOD) - latestBlockN
+            ) * AVG_SECONDS_PER_BLOCK
+          ) + FINALIZATION_DELAY
+        )
+      );
+    }
+
+    return ret;
+  }
+
   static 'web3_clientVersion' (obj, bridge) {
     return bridge.rootBridge.protocolAddress;
   }

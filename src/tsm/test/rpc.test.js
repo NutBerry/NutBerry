@@ -75,6 +75,11 @@ describe('RPC', () => {
     assert.equal(r.toString(), '0');
   });
 
+  it('rollup_estimateFinality', async () => {
+    const ret = await node.send('rollup_estimateFinality', [1, 'latest']);
+    assert.equal(ret.length, 2);
+  });
+
   it('maxTransactionSize', async () => {
     let errorStr = '';
 

@@ -86,6 +86,13 @@ const OPTIONS = [
     help: 'Defines the threshold of pending blocks without solutions until the node considers to submit solutions for pending blocks.',
   },
   {
+    env: 'SOLUTION_TIME_THRESHOLD',
+    key: 'submitSolutionTimeThreshold',
+    type: Number,
+    default: 60,
+    help: 'Time in seconds to wait for submitting new solutions since the last submitted solution(s).',
+  },
+  {
     env: 'CHALLENGE_DISPUTED_BLOCKS',
     key: 'alwaysChallengeDisputedBlocks',
     type: Number,

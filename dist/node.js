@@ -2355,6 +2355,55 @@ class Methods {
     bridge.pendingBlock = newHead;
   }
 
+  static async 'rollup_estimateFinality' (obj, bridge) {
+    const AVG_SECONDS_PER_BLOCK = 14;
+    const FINALIZATION_DELAY = AVG_SECONDS_PER_BLOCK * 10;
+    const latestBlockN = bridge.rootBridge.eventFilter.toBlock;
+    const blockNumbers = obj.params;
+    let ret = [];
+
+    if (this._finalizedHeight === undefined) {
+      this._finalizedHeight = await bridge.rootBridge.finalizedHeight();
+      setTimeout(() => this._finalizedHeight = undefined, 10000);
+    }
+
+    for (let maybeNumber of blockNumbers) {
+      if (maybeNumber === 'latest' || maybeNumber === 'pending') {
+        maybeNumber = bridge.pendingBlock.number;
+      }
+
+      const num = BigInt(maybeNumber);
+      const block = await bridge.getBlockByNumber(num, true);
+
+      if (!block) {
+        throw new Error(`block ${num} not found`);
+      }
+
+      if (block.number <= this._finalizedHeight) {
+        ret.push('0x0');
+        continue;
+      }
+
+      if (!block.submittedSolutionHash) {
+        ret.push(toQuantity((bridge.INSPECTION_PERIOD * AVG_SECONDS_PER_BLOCK) + FINALIZATION_DELAY));
+        continue;
+      }
+
+      ret.push(
+        toQuantity(
+          (
+            Math.max(
+              0,
+              (block.submittedSolutionBlockNumber + bridge.INSPECTION_PERIOD) - latestBlockN
+            ) * AVG_SECONDS_PER_BLOCK
+          ) + FINALIZATION_DELAY
+        )
+      );
+    }
+
+    return ret;
+  }
+
   static 'web3_clientVersion' (obj, bridge) {
     return bridge.rootBridge.protocolAddress;
   }
@@ -3163,6 +3212,7 @@ class Bridge$1 {
 
     // options regarding solution submission behaviour
     this.submitSolutionThreshold = options.submitSolutionThreshold || 256;
+    this.submitSolutionTimeThreshold = (options.submitSolutionTimeThreshold * 1000) || 60000;
     // challenge behaviour
     this.alwaysChallengeDisputedBlocks = !!options.alwaysChallengeDisputedBlocks;
     // pending block tx pool behaviour
@@ -3178,6 +3228,7 @@ class Bridge$1 {
     // TODO: find a better place / method
     this._pendingBlockSubmission = false;
     this._lastBlockSubmission = Date.now();
+    this._lastSolutionSubmitted = Date.now();
 
     if (options.privKey) {
       this.privKey = options.privKey.replace('0x', '');
@@ -3336,7 +3387,10 @@ class Bridge$1 {
 
       // submit them, if any
       // honor config parameter that specifies a threshold for submission
-      if (pendingSolutions.length >= this.submitSolutionThreshold) {
+      if (
+        pendingSolutions.length >= this.submitSolutionThreshold ||
+        Date.now() > this._lastSolutionSubmitted + this.submitSolutionTimeThreshold
+      ) {
         await this.submitSolution(pendingSolutions);
       }
 
@@ -3655,6 +3709,7 @@ class Bridge$1 {
       this.rootBridge.encodeSolution(firstBlock, data)
     );
 
+    this._lastSolutionSubmitted = Date.now();
     this.log('Bridge.submitSolution', Number(receipt.gasUsed));
 
     return true;
