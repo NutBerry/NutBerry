@@ -3217,6 +3217,8 @@ class Bridge$1 {
     this.alwaysChallengeDisputedBlocks = !!options.alwaysChallengeDisputedBlocks;
     // pending block tx pool behaviour
     this.alwaysKeepRevertedTransactions = this.debugMode || !!options.alwaysKeepRevertedTransactions;
+    // option to disable store & restore pending transactions
+    this.storeAndRestoreDisabled = !!options.disableStoreAndRestore;
 
     // incoming transactions
     this.maxTransactionSize = Number(options.maxTransactionSize) | 0;
@@ -3291,7 +3293,7 @@ class Bridge$1 {
       this.log('Disabled update loop because of debugMode');
     }
 
-    if (IS_NATIVE_ENV) {
+    if (IS_NATIVE_ENV && !this.storeAndRestoreDisabled) {
       // restore and check pendingTransactionPool
       const { existsSync, readFileSync, mkdirSync } = await import('fs');
 
@@ -3440,7 +3442,7 @@ class Bridge$1 {
 
   async _saveTxPool () {
     // filter _pendingTransactionPool
-    if (IS_NATIVE_ENV) {
+    if (IS_NATIVE_ENV && !this.storeAndRestoreDisabled) {
       const tmp = [];
 
       for (const tx of this._pendingTransactionPool) {
