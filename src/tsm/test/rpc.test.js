@@ -18,7 +18,6 @@ describe('RPC', () => {
       0,
       bridgeL1.address,
       null,
-      0,
       {
         maxTransactionSize: 20000,
         rpcApiKey: 'hello',

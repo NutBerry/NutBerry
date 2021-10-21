@@ -17,9 +17,8 @@ describe('Node - pending transaction pool', async function () {
       0,
       bridge.address,
       { types: { EIP712Domain: [] }, primaryTypes: [], domain: {} },
-      0,
       // overrides
-      { blockSizeThreshold: 9999999 }
+      { blockSizeThreshold: 9999999, disableStoreAndRestore: false }
     );
   }
 

@@ -141,6 +141,13 @@ const OPTIONS = [
     default: '',
     help: 'A secret that a json-rpc client can put into a `auth` property on the json-rpc request to allow any rpc method to be called even if they are explicitly disabled via DISABLED_RPC_METHODS.',
   },
+  {
+    env: 'DISABLE_RESTORE',
+    key: 'disableStoreAndRestore',
+    type: Number,
+    default: 0,
+    help: 'Disables saving and restoring the pending transaction pool.',
+  },
 ];
 
 function printHelp () {

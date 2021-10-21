@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 import startServer from '../startServer.js';
 
-export async function startNode (serverPath, port, i, contract, typedData, featureFlags, overrides = {}) {
+export async function startNode (serverPath, port, i, contract, typedData, overrides = {}) {
   const config = Object.assign({
     contract: contract,
     privKey: '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b750120' + i,
@@ -14,10 +14,10 @@ export async function startNode (serverPath, port, i, contract, typedData, featu
     rootRpcUrl: process.env.ROOT_RPC_URL,
     eventCheckMs: 60,
     debugMode: 1,
-    featureFlags: featureFlags | 0,
     blockSizeThreshold: 1,
     submitSolutionThreshold: 1,
     alwaysChallengeDisputedBlocks: true,
+    disableStoreAndRestore: true,
     typedData,
     serverPath
   }, overrides);
