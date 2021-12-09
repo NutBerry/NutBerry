@@ -493,7 +493,10 @@ export default class Bridge {
     if (!blockNumbers || !Array.isArray(blockNumbers)) {
       throw new TypeError(`expected an array of block numbers`);
     }
-    if (blockNumbers.length === 0 || blockNumbers.length > 256) {
+    if (blockNumbers.length === 0) {
+      return true;
+    }
+    if (blockNumbers.length > 256) {
       throw new Error(`invalid length of blockNumbers(${blockNumbers.length})`);
     }
 
