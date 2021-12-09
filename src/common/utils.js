@@ -40,7 +40,7 @@ export async function signRlpTransaction (txObj, privKeyBuf, chainId) {
   const tmp = [chainId, nonce, gasPrice, gasLimit, to, value, data, accessList];
 
   const unsigned = [1].concat(rlpEncode(tmp));
-  const unsignedHash = keccak.reset().update(unsigned).digestArray();
+  const unsignedHash = keccak.reset().update(unsigned).digest();
   const { v, r, s } = await ecsign(unsignedHash, privKeyBuf, chainId);
   const signed = [1].concat(rlpEncode(
     [chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, v, stripZeros(r), stripZeros(s)]
@@ -58,8 +58,8 @@ export function recoverAddress (msg, v, r, s, chainId) {
       ecrecover(
         bufferify(msg),
         Number(v) | 0,
-        bufferify(r),
-        bufferify(s),
+        BigInt(r),
+        BigInt(s),
         Number(chainId) | 0
       )
     ).digest().slice(24, 64);

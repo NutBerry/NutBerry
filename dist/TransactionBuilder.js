@@ -1,23 +1,7 @@
 if (typeof process !== 'undefined') {
-  globalThis['process$1'] = process;
-  import('crypto').then(function(esm){globalThis['require$$0']=esm});
-  globalThis['fs'] = undefined;
-  globalThis['path$1'] = undefined;
-} else {
-  globalThis['Buffer'] = {
-    from: function (a, b) {
-      if (b !== 'hex') {
-        throw new Error('unsupported Buffer.from');
-      }
-      const len = a.length / 2;
-      const ret = Array(len);
-      for (let i = 0; i < len; i++) {
-        const x = i * 2;
-        ret[i] = parseInt(a.substring(x, x + 2), 16);
-      }
-      return ret;
-    }
-  };
+  const obj = {};
+  globalThis['require$$0'] = obj;
+  import('crypto').then(function(esm){Object.assign(obj, esm)});
 }
 
 
@@ -124,12 +108,16 @@ function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
 
-var nobleSecp256k1 = {};
+function commonjsRequire (path) {
+	throw new Error('Could not dynamically require "' + path + '". Please configure the dynamicRequireTargets or/and ignoreDynamicRequires option of @rollup/plugin-commonjs appropriately for this require call to work.');
+}
 
-(function (exports) {
+var secp256k1 = {exports: {}};
+
+(function (module, exports) {
 /*! noble-secp256k1 - MIT License (c) Paul Miller (paulmillr.com) */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.utils = exports.schnorr = exports.verify = exports.sign = exports.getSharedSecret = exports.recoverPublicKey = exports.getPublicKey = exports.SignResult = exports.Signature = exports.Point = exports.CURVE = void 0;
+exports.utils = exports.schnorr = exports.verify = exports.signSync = exports.sign = exports.getSharedSecret = exports.recoverPublicKey = exports.getPublicKey = exports.SignResult = exports.Signature = exports.Point = exports.CURVE = void 0;
 const CURVE = {
     a: 0n,
     b: 7n,
@@ -181,12 +169,12 @@ class JacobianPoint {
         const X1 = this.x;
         const Y1 = this.y;
         const Z1 = this.z;
-        const A = X1 ** 2n;
-        const B = Y1 ** 2n;
-        const C = B ** 2n;
-        const D = 2n * ((X1 + B) ** 2n - A - C);
-        const E = 3n * A;
-        const F = E ** 2n;
+        const A = mod(X1 ** 2n);
+        const B = mod(Y1 ** 2n);
+        const C = mod(B ** 2n);
+        const D = mod(2n * (mod(mod((X1 + B) ** 2n)) - A - C));
+        const E = mod(3n * A);
+        const F = mod(E ** 2n);
         const X3 = mod(F - 2n * D);
         const Y3 = mod(E * (D - X3) - 8n * C);
         const Z3 = mod(2n * Y1 * Z1);
@@ -206,12 +194,12 @@ class JacobianPoint {
             return this;
         if (X1 === 0n || Y1 === 0n)
             return other;
-        const Z1Z1 = Z1 ** 2n;
-        const Z2Z2 = Z2 ** 2n;
-        const U1 = X1 * Z2Z2;
-        const U2 = X2 * Z1Z1;
-        const S1 = Y1 * Z2 * Z2Z2;
-        const S2 = Y2 * Z1 * Z1Z1;
+        const Z1Z1 = mod(Z1 ** 2n);
+        const Z2Z2 = mod(Z2 ** 2n);
+        const U1 = mod(X1 * Z2Z2);
+        const U2 = mod(X2 * Z1Z1);
+        const S1 = mod(Y1 * Z2 * Z2Z2);
+        const S2 = mod(mod(Y2 * Z1) * Z1Z1);
         const H = mod(U2 - U1);
         const r = mod(S2 - S1);
         if (H === 0n) {
@@ -224,7 +212,7 @@ class JacobianPoint {
         }
         const HH = mod(H ** 2n);
         const HHH = mod(H * HH);
-        const V = U1 * HH;
+        const V = mod(U1 * HH);
         const X3 = mod(r ** 2n - HHH - 2n * V);
         const Y3 = mod(r * (V - X3) - S1 * HHH);
         const Z3 = mod(Z1 * Z2 * H);
@@ -408,7 +396,6 @@ class Point {
     static fromSignature(msgHash, signature, recovery) {
         let h = msgHash instanceof Uint8Array ? bytesToNumber(msgHash) : hexToNumber(msgHash);
         const sig = normalizeSignature(signature);
-        sig.assertValidity();
         const { r, s } = sig;
         if (recovery !== 0 && recovery !== 1) {
             throw new Error('Cannot recover signature: invalid yParity bit');
@@ -482,41 +469,58 @@ class Signature {
         this.r = r;
         this.s = s;
     }
-    static fromHex(hex) {
+    static fromCompact(hex) {
         if (typeof hex !== 'string' && !(hex instanceof Uint8Array)) {
-            throw new TypeError(`Signature.fromHex: Expected string or Uint8Array`);
+            throw new TypeError(`Signature.fromCompact: Expected string or Uint8Array`);
+        }
+        const str = hex instanceof Uint8Array ? bytesToHex(hex) : hex;
+        if (str.length !== 128)
+            throw new Error('Signature.fromCompact: Expected 64-byte hex');
+        const sig = new Signature(hexToNumber(str.slice(0, 64)), hexToNumber(str.slice(64, 128)));
+        sig.assertValidity();
+        return sig;
+    }
+    static fromDER(hex) {
+        const fn = 'Signature.fromDER';
+        if (typeof hex !== 'string' && !(hex instanceof Uint8Array)) {
+            throw new TypeError(`${fn}: Expected string or Uint8Array`);
         }
         const str = hex instanceof Uint8Array ? bytesToHex(hex) : hex;
         const length = parseByte(str.slice(2, 4));
         if (str.slice(0, 2) !== '30' || length !== str.length - 4 || str.slice(4, 6) !== '02') {
-            throw new Error('Signature.fromHex: Invalid signature');
+            throw new Error(`${fn}: Invalid signature ${str}`);
         }
         const rLen = parseByte(str.slice(6, 8));
         const rEnd = 8 + rLen;
         const rr = str.slice(8, rEnd);
         if (rr.startsWith('00') && parseByte(rr.slice(2, 4)) <= 0x7f) {
-            throw new Error('Signature.fromHex: Invalid r with trailing length');
+            throw new Error(`${fn}: Invalid r with trailing length`);
         }
         const r = hexToNumber(rr);
         const separator = str.slice(rEnd, rEnd + 2);
         if (separator !== '02') {
-            throw new Error('Signature.fromHex: Invalid r-s separator');
+            throw new Error(`${fn}: Invalid r-s separator`);
         }
         const sLen = parseByte(str.slice(rEnd + 2, rEnd + 4));
         const diff = length - sLen - rLen - 10;
         if (diff > 0 || diff === -4) {
-            throw new Error(`Signature.fromHex: Invalid total length`);
+            throw new Error(`${fn}: Invalid total length`);
         }
         if (sLen > length - rLen - 4) {
-            throw new Error(`Signature.fromHex: Invalid s`);
+            throw new Error(`${fn}: Invalid s`);
         }
         const sStart = rEnd + 4;
         const ss = str.slice(sStart, sStart + sLen);
         if (ss.startsWith('00') && parseByte(ss.slice(2, 4)) <= 0x7f) {
-            throw new Error(`Signature.fromHex: Invalid s with trailing length`);
+            throw new Error(`${fn}: Invalid s with trailing length`);
         }
         const s = hexToNumber(ss);
-        return new Signature(r, s);
+        const sig = new Signature(r, s);
+        sig.assertValidity();
+        return sig;
+    }
+    static fromHex(hex) {
+        return this.fromDER(hex);
     }
     assertValidity() {
         const { r, s } = this;
@@ -525,10 +529,10 @@ class Signature {
         if (!isWithinCurveOrder(s))
             throw new Error('Invalid Signature: s must be 0 < s < n');
     }
-    toRawBytes(isCompressed = false) {
-        return hexToBytes(this.toHex(isCompressed));
+    toDERRawBytes(isCompressed = false) {
+        return hexToBytes(this.toDERHex(isCompressed));
     }
-    toHex(isCompressed = false) {
+    toDERHex(isCompressed = false) {
         const sHex = sliceDer(numberToHex(this.s));
         if (isCompressed)
             return sHex;
@@ -537,6 +541,18 @@ class Signature {
         const sLen = numberToHex(sHex.length / 2);
         const length = numberToHex(rHex.length / 2 + sHex.length / 2 + 4);
         return `30${length}02${rLen}${rHex}02${sLen}${sHex}`;
+    }
+    toRawBytes() {
+        return this.toDERRawBytes();
+    }
+    toHex() {
+        return this.toDERHex();
+    }
+    toCompactRawBytes() {
+        return hexToBytes(this.toCompactHex());
+    }
+    toCompactHex() {
+        return pad64(this.r) + pad64(this.s);
     }
 }
 exports.Signature = Signature;
@@ -712,35 +728,66 @@ function truncateHash(hash) {
     }
     return msg;
 }
-async function getQRSrfc6979(msgHash, privateKey) {
+function _abc6979(msgHash, privateKey) {
+    if (msgHash == null)
+        throw new Error(`sign: expected valid msgHash, not "${msgHash}"`);
     const num = typeof msgHash === 'string' ? hexToNumber(msgHash) : bytesToNumber(msgHash);
     const h1 = pad32b(num);
-    const x = pad32b(privateKey);
     const h1n = bytesToNumber(h1);
+    const x = pad32b(privateKey);
     let v = new Uint8Array(32).fill(1);
     let k = new Uint8Array(32).fill(0);
     const b0 = Uint8Array.from([0x00]);
     const b1 = Uint8Array.from([0x01]);
-    k = await exports.utils.hmacSha256(k, v, b0, x, h1);
-    v = await exports.utils.hmacSha256(k, v);
-    k = await exports.utils.hmacSha256(k, v, b1, x, h1);
-    v = await exports.utils.hmacSha256(k, v);
+    return [h1, h1n, x, v, k, b0, b1];
+}
+async function getQRSrfc6979(msgHash, privateKey) {
+    const privKey = normalizePrivateKey(privateKey);
+    let [h1, h1n, x, v, k, b0, b1] = _abc6979(msgHash, privKey);
+    const hmac = exports.utils.hmacSha256;
+    k = await hmac(k, v, b0, x, h1);
+    v = await hmac(k, v);
+    k = await hmac(k, v, b1, x, h1);
+    v = await hmac(k, v);
     for (let i = 0; i < 1000; i++) {
-        v = await exports.utils.hmacSha256(k, v);
-        const T = bytesToNumber(v);
-        let qrs;
-        if (isWithinCurveOrder(T) && (qrs = calcQRSFromK(T, h1n, privateKey))) {
+        v = await hmac(k, v);
+        let qrs = calcQRSFromK(v, h1n, privKey);
+        if (qrs)
             return qrs;
-        }
-        k = await exports.utils.hmacSha256(k, v, b0);
-        v = await exports.utils.hmacSha256(k, v);
+        k = await hmac(k, v, b0);
+        v = await hmac(k, v);
+    }
+    throw new TypeError('secp256k1: Tried 1,000 k values for sign(), all were invalid');
+}
+function getQRSrfc6979Sync(msgHash, privateKey) {
+    const privKey = normalizePrivateKey(privateKey);
+    let [h1, h1n, x, v, k, b0, b1] = _abc6979(msgHash, privKey);
+    const hmac = exports.utils.hmacSha256Sync;
+    if (!hmac)
+        throw new Error('utils.hmacSha256Sync is undefined, you need to set it');
+    k = hmac(k, v, b0, x, h1);
+    if (k instanceof Promise)
+        throw new Error('To use sync sign(), ensure utils.hmacSha256 is sync');
+    v = hmac(k, v);
+    k = hmac(k, v, b1, x, h1);
+    v = hmac(k, v);
+    for (let i = 0; i < 1000; i++) {
+        v = hmac(k, v);
+        let qrs = calcQRSFromK(v, h1n, privKey);
+        if (qrs)
+            return qrs;
+        k = hmac(k, v, b0);
+        v = hmac(k, v);
     }
     throw new TypeError('secp256k1: Tried 1,000 k values for sign(), all were invalid');
 }
 function isWithinCurveOrder(num) {
     return 0 < num && num < CURVE.n;
 }
-function calcQRSFromK(k, msg, priv) {
+function calcQRSFromK(v, msg, priv) {
+    const k = bytesToNumber(v);
+    if (!isWithinCurveOrder(k))
+        return;
     const max = CURVE.n;
     const q = Point.BASE.multiply(k);
     const r = mod(q.x, max);
@@ -754,7 +801,7 @@ function normalizePrivateKey(key) {
     if (typeof key === 'bigint') {
         num = key;
     }
-    else if (Number.isSafeInteger(key) && key > 0) {
+    else if (typeof key === 'number' && Number.isSafeInteger(key) && key > 0) {
         num = BigInt(key);
     }
     else if (typeof key === 'string') {
@@ -775,10 +822,22 @@ function normalizePrivateKey(key) {
     return num;
 }
 function normalizePublicKey(publicKey) {
-    return publicKey instanceof Point ? publicKey : Point.fromHex(publicKey);
+    if (publicKey instanceof Point) {
+        publicKey.assertValidity();
+        return publicKey;
+    }
+    else {
+        return Point.fromHex(publicKey);
+    }
 }
 function normalizeSignature(signature) {
-    return signature instanceof Signature ? signature : Signature.fromHex(signature);
+    if (signature instanceof Signature) {
+        signature.assertValidity();
+        return signature;
+    }
+    else {
+        return Signature.fromDER(signature);
+    }
 }
 function getPublicKey(privateKey, isCompressed = false) {
     const point = Point.fromPrivateKey(privateKey);
@@ -818,11 +877,9 @@ function getSharedSecret(privateA, publicB, isCompressed = false) {
         : shared.toRawBytes(isCompressed);
 }
 exports.getSharedSecret = getSharedSecret;
-async function sign(msgHash, privateKey, { recovered, canonical } = {}) {
-    if (msgHash == null)
-        throw new Error(`sign: expected valid msgHash, not "${msgHash}"`);
-    const priv = normalizePrivateKey(privateKey);
-    const [q, r, s] = await getQRSrfc6979(msgHash, priv);
+function QRSToSig(qrs, opts, str = false) {
+    const [q, r, s] = qrs;
+    let { canonical, der, recovered } = opts;
     let recovery = (q.x === r ? 0 : 2) | Number(q.y & 1n);
     let adjustedS = s;
     const HIGH_NUMBER = CURVE.n >> 1n;
@@ -831,15 +888,24 @@ async function sign(msgHash, privateKey, { recovered, canonical } = {}) {
         recovery ^= 1;
     }
     const sig = new Signature(r, adjustedS);
-    const hashed = typeof msgHash === 'string' ? sig.toHex() : sig.toRawBytes();
+    sig.assertValidity();
+    const hex = der === false ? sig.toCompactHex() : sig.toDERHex();
+    const hashed = str ? hex : hexToBytes(hex);
     return recovered ? [hashed, recovery] : hashed;
 }
+async function sign(msgHash, privKey, opts = {}) {
+    return QRSToSig(await getQRSrfc6979(msgHash, privKey), opts, typeof msgHash === 'string');
+}
 exports.sign = sign;
+function signSync(msgHash, privKey, opts = {}) {
+    return QRSToSig(getQRSrfc6979Sync(msgHash, privKey), opts, typeof msgHash === 'string');
+}
+exports.signSync = signSync;
 function verify(signature, msgHash, publicKey) {
     const { n } = CURVE;
-    const sig = normalizeSignature(signature);
+    let sig;
     try {
-        sig.assertValidity();
+        sig = normalizeSignature(signature);
     }
     catch (error) {
         return false;
@@ -877,7 +943,7 @@ class SchnorrSignature {
     constructor(r, s) {
         this.r = r;
         this.s = s;
-        if (r === 0n || s === 0n || r >= CURVE.P || s >= CURVE.n)
+        if (r <= 0n || s <= 0n || r >= CURVE.P || s >= CURVE.n)
             throw new Error('Invalid signature');
     }
     static fromHex(hex) {
@@ -947,6 +1013,14 @@ exports.schnorr = {
     verify: schnorrVerify,
 };
 Point.BASE._setWindowSize(8);
+const crypto = (() => {
+    const webCrypto = typeof self === 'object' && 'crypto' in self ? self.crypto : undefined;
+    const nodeRequire = typeof commonjsRequire === 'function';
+    return {
+        node: nodeRequire && !webCrypto ? require$$0 : undefined,
+        web: webCrypto,
+    };
+})();
 exports.utils = {
     isValidPrivateKey(privateKey) {
         try {
@@ -958,11 +1032,11 @@ exports.utils = {
         }
     },
     randomBytes: (bytesLength = 32) => {
-        if (typeof window == 'object' && 'crypto' in window) {
-            return window.crypto.getRandomValues(new Uint8Array(bytesLength));
+        if (crypto.web) {
+            return crypto.web.getRandomValues(new Uint8Array(bytesLength));
         }
-        else if (typeof process === 'object' && 'node' in process.versions) {
-            const { randomBytes } = require$$0;
+        else if (crypto.node) {
+            const { randomBytes } = crypto.node;
             return new Uint8Array(randomBytes(bytesLength).buffer);
         }
         else {
@@ -974,18 +1048,18 @@ exports.utils = {
         while (i--) {
             const b32 = exports.utils.randomBytes(32);
             const num = bytesToNumber(b32);
-            if (num > 1n && num < CURVE.n)
+            if (isWithinCurveOrder(num) && num !== 1n)
                 return b32;
         }
         throw new Error('Valid private key was not found in 8 iterations. PRNG is broken');
     },
     sha256: async (message) => {
-        if (typeof window == 'object' && 'crypto' in window) {
-            const buffer = await window.crypto.subtle.digest('SHA-256', message.buffer);
+        if (crypto.web) {
+            const buffer = await crypto.web.subtle.digest('SHA-256', message.buffer);
             return new Uint8Array(buffer);
         }
-        else if (typeof process === 'object' && 'node' in process.versions) {
-            const { createHash } = require$$0;
+        else if (crypto.node) {
+            const { createHash } = crypto.node;
             return Uint8Array.from(createHash('sha256').update(message).digest());
         }
         else {
@@ -993,14 +1067,14 @@ exports.utils = {
         }
     },
     hmacSha256: async (key, ...messages) => {
-        if (typeof window == 'object' && 'crypto' in window) {
-            const ckey = await window.crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: { name: 'SHA-256' } }, false, ['sign']);
+        if (crypto.web) {
+            const ckey = await crypto.web.subtle.importKey('raw', key, { name: 'HMAC', hash: { name: 'SHA-256' } }, false, ['sign']);
             const message = concatBytes(...messages);
-            const buffer = await window.crypto.subtle.sign('HMAC', ckey, message);
+            const buffer = await crypto.web.subtle.sign('HMAC', ckey, message);
             return new Uint8Array(buffer);
         }
-        else if (typeof process === 'object' && 'node' in process.versions) {
-            const { createHmac } = require$$0;
+        else if (crypto.node) {
+            const { createHmac } = crypto.node;
             const hash = createHmac('sha256', key);
             for (let message of messages) {
                 hash.update(message);
@@ -1011,6 +1085,8 @@ exports.utils = {
             throw new Error("The environment doesn't have hmac-sha256 function");
         }
     },
+    sha256Sync: undefined,
+    hmacSha256Sync: undefined,
     precompute(windowSize = 8, point = Point.BASE) {
         const cached = point === Point.BASE ? point : new Point(point.x, point.y);
         cached._setWindowSize(windowSize);
@@ -1018,9 +1094,9 @@ exports.utils = {
         return cached;
     },
 };
-}(nobleSecp256k1));
+}(secp256k1, secp256k1.exports));
 
-var secp = /*@__PURE__*/getDefaultExportFromCjs(nobleSecp256k1);
+var secp = /*@__PURE__*/getDefaultExportFromCjs(secp256k1.exports);
 
 function ecrecover (msgHash, v, r, s, chainId) {
   const recovery = chainId ? v - (2 * chainId + 35) : v - 27;
@@ -1029,35 +1105,7 @@ function ecrecover (msgHash, v, r, s, chainId) {
     throw new Error('Invalid signature v value');
   }
 
-  let skipR = 0;
-  for (const v of r) {
-    if (v === 0) {
-      skipR++;
-    }
-    break;
-  }
-  let skipS = 0;
-  for (const v of s) {
-    if (v === 0) {
-      skipS++;
-    }
-    break;
-  }
-
-  // DER encoding
-  // 0x30${length}02${rLen}${r}02${sLen}${s}
-  const rLen = r.length - skipR;
-  const sLen = s.length - skipS;
-  const sig = new Uint8Array(6 + rLen + sLen);
-  sig[0] = 48;
-  sig[1] = sig.length - 2;
-  sig[2] = 2;
-  sig[3] = rLen;
-  sig.set(r.subarray(skipR), 4);
-  let offset = 4 + rLen;
-  sig[offset++] = 2;
-  sig[offset++] = sLen;
-  sig.set(s.subarray(skipS), offset);
+  const sig = new secp.Signature(r, s);
 
   return secp.recoverPublicKey(msgHash, sig, recovery).slice(1);
 }
@@ -1445,8 +1493,8 @@ function recoverAddress (msg, v, r, s, chainId) {
       ecrecover(
         bufferify(msg),
         Number(v) | 0,
-        bufferify(r),
-        bufferify(s),
+        BigInt(r),
+        BigInt(s),
         Number(chainId) | 0
       )
     ).digest().slice(24, 64);

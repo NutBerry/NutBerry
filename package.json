@@ -1,6 +1,6 @@
 {
   "name": "@NutBerry/NutBerry",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "author": "NutBerry",
   "license": "Unlicense",
   "type": "module",
@@ -12,19 +12,18 @@
     "coverage": "yarn compile && develatus-apparatus",
     "dist:node": "rollup -c rollup.config.js -f es -i src/v1/lib/index.js -o dist/node.js && scripts/fixBundle.js dist/node.js",
     "dist:txBuilder": "rollup -c rollup.config.js -f es -i src/v1/lib/TransactionBuilder.js -o dist/TransactionBuilder.js && scripts/fixBundle.js dist/TransactionBuilder.js",
-    "dist:replayTool": "rollup -c rollup.config.js -f es -i src/tools/replayTool.js -o dist/replayTool.js && scripts/fixBundle.js dist/replayTool.js",
-    "dist": "yarn dist:node && yarn dist:txBuilder && yarn dist:replayTool"
+    "dist": "yarn dist:node && yarn dist:txBuilder"
   },
   "dependencies": {
-    "noble-secp256k1": "=1.2.6"
+    "@noble/secp256k1": "=1.3.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "=19.0.0",
     "@rollup/plugin-json": "=4.1.0",
     "@rollup/plugin-node-resolve": "=13.0.0",
-    "develatus-apparatus": "https://github.com/pinkiebell/develatus-apparatus/archive/refs/tags/v0.3.8.tar.gz",
-    "ethers": "=5.4.1",
-    "mocha": "=9.0.2",
+    "develatus-apparatus": "https://github.com/pinkiebell/develatus-apparatus/archive/refs/tags/v0.3.10.tar.gz",
+    "ethers": "=5.5.2",
+    "mocha": "=9.1.3",
     "rollup": "=2.52.1",
     "solc": "=0.7.6"
   }
