@@ -133,6 +133,7 @@ export default class Block extends TsmBlock {
     this.inventory = null;
     this.reflectedStorage = {};
     this.reflectedStorageDelta = {};
+    this._bbt = null;
     // todo - uncomment once stateRoots are saved separately
     //for (const tx of this.transactions) {
     //  tx.witness = undefined;
@@ -261,6 +262,10 @@ export default class Block extends TsmBlock {
   }
 
   get bbt () {
+    if (this._bbt) {
+      return this._bbt;
+    }
+
     const bbt = this.prevBlock ? this.prevBlock.bbt.clone() : new BalancedBinaryTree();
     for (const tx of this.transactions) {
       const writes = tx.witness.writes;
@@ -268,6 +273,13 @@ export default class Block extends TsmBlock {
         const storageValue = writes[k];
         bbt.add(BigInt(k), BigInt(storageValue));
       }
+    }
+
+    // not pruned but blockdata submitted
+    if (this.inventory && this.hash !== ZERO_HASH) {
+      // cache bbt if this is the last submitted block
+      this._bbt = bbt;
+      this.log('caching bbt');
     }
 
     return bbt;

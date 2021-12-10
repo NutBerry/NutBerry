@@ -1987,7 +1987,6 @@ class Block$1 {
   }
 
   prune () {
-    this.log('prune');
     this._raw = null;
     this.nonces = {};
   }
@@ -3462,6 +3461,20 @@ class Bridge$1 {
       if (!this.debugMode) {
         await this.forwardChain();
       }
+
+      const finalizedHeight = await this.rootBridge.finalizedHeight();
+      let block = await this.getBlockByNumber(finalizedHeight);
+      // all blocks except the latest submitted block are safe to prune
+      if (block && block === this.pendingBlock.prevBlock) {
+        block = block.prevBlock;
+      }
+      while (block) {
+        if (this.debugMode) {
+          this.log(`pruning block ${block.number}`);
+        }
+        block.prune();
+        block = block.prevBlock;
+      }
     } catch (e) {
       this.log(e);
     }
@@ -3755,7 +3768,6 @@ class Bridge$1 {
     }
 
     const TAG = 'Bridge.finalizeSolution';
-    const blocks = [];
     const payloads = [];
     const firstBlockNumber = blockNumbers[0];
     for (const blockNumber of blockNumbers) {
@@ -3767,7 +3779,6 @@ class Bridge$1 {
 
       const mySolution = await block.computeSolution(this);
       this.log(TAG, mySolution);
-      blocks.push(block);
       payloads.push(mySolution.payload);
     }
 
@@ -3777,14 +3788,6 @@ class Bridge$1 {
     );
     const receipt = await this.wrapSendTransaction(txData);
     this.log(TAG, Number(receipt.gasUsed));
-
-    // TODO: maybe move this to `forwardChain`
-    for (const block of blocks) {
-      // all blocks except the latest submitted block are safe to prune
-      if (this.pendingBlock.prevBlock !== block) {
-        block.prune();
-      }
-    }
 
     return true;
   }
@@ -6365,6 +6368,7 @@ class Block extends Block$1 {
     this.inventory = null;
     this.reflectedStorage = {};
     this.reflectedStorageDelta = {};
+    this._bbt = null;
     // todo - uncomment once stateRoots are saved separately
     //for (const tx of this.transactions) {
     //  tx.witness = undefined;
@@ -6493,6 +6497,10 @@ class Block extends Block$1 {
   }
 
   get bbt () {
+    if (this._bbt) {
+      return this._bbt;
+    }
+
     const bbt = this.prevBlock ? this.prevBlock.bbt.clone() : new BalancedBinaryTree();
     for (const tx of this.transactions) {
       const writes = tx.witness.writes;
@@ -6500,6 +6508,13 @@ class Block extends Block$1 {
         const storageValue = writes[k];
         bbt.add(BigInt(k), BigInt(storageValue));
       }
+    }
+
+    // not pruned but blockdata submitted
+    if (this.inventory && this.hash !== ZERO_HASH) {
+      // cache bbt if this is the last submitted block
+      this._bbt = bbt;
+      this.log('caching bbt');
     }
 
     return bbt;

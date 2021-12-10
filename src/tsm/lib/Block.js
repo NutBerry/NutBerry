@@ -217,7 +217,6 @@ export default class Block {
   }
 
   prune () {
-    this.log('prune');
     this._raw = null;
     this.nonces = {};
   }

@@ -252,6 +252,20 @@ export default class Bridge {
       if (!this.debugMode) {
         await this.forwardChain();
       }
+
+      const finalizedHeight = await this.rootBridge.finalizedHeight();
+      let block = await this.getBlockByNumber(finalizedHeight);
+      // all blocks except the latest submitted block are safe to prune
+      if (block && block === this.pendingBlock.prevBlock) {
+        block = block.prevBlock;
+      }
+      while (block) {
+        if (this.debugMode) {
+          this.log(`pruning block ${block.number}`);
+        }
+        block.prune();
+        block = block.prevBlock;
+      }
     } catch (e) {
       this.log(e);
     }
@@ -545,7 +559,6 @@ export default class Bridge {
     }
 
     const TAG = 'Bridge.finalizeSolution';
-    const blocks = [];
     const payloads = [];
     const firstBlockNumber = blockNumbers[0];
     for (const blockNumber of blockNumbers) {
@@ -557,7 +570,6 @@ export default class Bridge {
 
       const mySolution = await block.computeSolution(this);
       this.log(TAG, mySolution);
-      blocks.push(block);
       payloads.push(mySolution.payload);
     }
 
@@ -567,14 +579,6 @@ export default class Bridge {
     );
     const receipt = await this.wrapSendTransaction(txData);
     this.log(TAG, Number(receipt.gasUsed));
-
-    // TODO: maybe move this to `forwardChain`
-    for (const block of blocks) {
-      // all blocks except the latest submitted block are safe to prune
-      if (this.pendingBlock.prevBlock !== block) {
-        block.prune();
-      }
-    }
 
     return true;
   }
