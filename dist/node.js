@@ -59,19 +59,25 @@ class Inventory {
     Object.freeze(this.writes);
   }
 
-  clearCache() {
-    this.reads = {};
-    this.writes = {};
+  alloc () {
+    const ret = new this.constructor();
+    ret.storage = this.storage;
+    return ret;
+  }
+
+  commit (obj) {
+    for (const key in obj.writes) {
+      this.storage[key] = obj.writes[key];
+    }
   }
 
   _getValue (key) {
-    return this.storage[key];
+    return this.writes[key] || this.storage[key];
   }
 
   _setValue (key, value) {
     const v = toStr(value, 64);
 
-    this.storage[key] = v;
     this.writes[key] = v;
   }
 
@@ -6345,11 +6351,6 @@ class Block extends Block$1 {
     this.inventory = prevBlock && prevBlock.inventory ? prevBlock.inventory.clone() : new Inventory();
     this.reflectedStorage = {};
     this.reflectedStorageDelta = {};
-
-    if (this.inventory) {
-      // clear any temp values
-      this.inventory.clearCache();
-    }
   }
 
   freeze () {
@@ -6377,8 +6378,6 @@ class Block extends Block$1 {
   }
 
   async executeTx (tx, bridge, dry, internal) {
-    // copy the environment
-    const customEnvironment = this.inventory.clone();
     let data;
 
     if (internal) {
@@ -6404,11 +6403,10 @@ class Block extends Block$1 {
       runtime.timestamp = BigInt(this.timestamp);
     }
 
-    customEnvironment.clearCache();
-
     // the maximum allowed steps the call can make; this is merely to avoid infinite execution
     // TODO: estimate gas for the call on the root-chain
     runtime.stepCount = 0x1fffff;
+    const customEnvironment = this.inventory.alloc();
     const state = await runtime.run({ address, caller, code, data, customEnvironment, bridge });
 
     {
@@ -6431,7 +6429,7 @@ class Block extends Block$1 {
 
     // no errors and not in dry-mode = use new state
     if (state.errno === 0 && !dry) {
-      this.inventory = customEnvironment;
+      this.inventory.commit(customEnvironment);
 
       // check if the contract emitted internal events
       for (const log of state.logs) {
