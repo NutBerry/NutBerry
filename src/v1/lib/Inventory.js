@@ -52,19 +52,25 @@ export default class Inventory {
     Object.freeze(this.writes);
   }
 
-  clearCache() {
-    this.reads = {};
-    this.writes = {};
+  alloc () {
+    const ret = new this.constructor();
+    ret.storage = this.storage;
+    return ret;
+  }
+
+  commit (obj) {
+    for (const key in obj.writes) {
+      this.storage[key] = obj.writes[key];
+    }
   }
 
   _getValue (key) {
-    return this.storage[key];
+    return this.writes[key] || this.storage[key];
   }
 
   _setValue (key, value) {
     const v = toStr(value, 64);
 
-    this.storage[key] = v;
     this.writes[key] = v;
   }
 
